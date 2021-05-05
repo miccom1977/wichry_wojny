@@ -1,0 +1,80 @@
+html, body {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    background: black;
+    font-family: Arial;
+}
+.grid-test {
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+}
+.map-bg {
+    background: url("../images/background/mapav1.jpg") no-repeat scroll 0 0 transparent;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+    z-index: 1;
+}
+.map-grid {
+    background: url("../images/background/hex-grid-48x42.png") repeat scroll 0 0 transparent;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+    z-index: 2;
+}
+.tile {
+    background-image: url("../images/background/jednostki1.png");
+    background-position: 0 0;
+    height: 42px;
+    position: absolute;
+    width: 48px;
+    margin-top: 5px;
+    z-index: 11;
+}
+.tile_active {
+    background-image: url("../images/background/sprite.png");
+    background-position: 0 0;
+    height: 42px;
+    position: absolute;
+    width: 48px;
+    z-index: 10;
+}
+.tile_moveto {
+    background-image: url("../images/background/sprite.png");
+    background-position: 0 84px;
+    height: 42px;
+    position: absolute;
+    width: 48px;
+    z-index: 9;
+    opacity: 0.5;
+}
+
+#footer {
+    width: 100%;
+    height: 30px;
+    line-height: 30px;
+    color: #ababab;
+    text-align: center;
+    font-size: 11px;
+}
+#cookieInfo{
+	position: fixed;
+    bottom: 0;
+    color: #FFF;
+    background: #F00;
+    padding: 10px;
+    display: block;
+    width: 100%;
+	
+}
+#closeCookie{
+	cursor: pointer;
+    font-weight: 700;
+    width: 100px;
+    height: 20px;
+    position: absolute;
+    right: 0;
+    top: 10px;
+}

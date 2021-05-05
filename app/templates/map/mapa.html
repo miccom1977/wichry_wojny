@@ -1,0 +1,3737 @@
+{% extends "ingame.html" %}
+{% block head %}
+{{ parent() }}
+<style type="text/css">
+    html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        background: black;
+    }
+    .grid-test {
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+    }
+    .map-bg {
+		background: url("app/templates/assets/images/maps/{{ world.warMap }}") no-repeat scroll 0 0 transparent;
+		height: 100%;
+        position: absolute;
+        width: 100%;
+        z-index: 1;
+    }
+    .map-grid {
+        background: url("app/templates/assets/images/background/hex-grid-48x42.png") repeat scroll 0 0 transparent;
+        height: 100%;
+        position: absolute;
+        width: 100%;
+        z-index: 2;
+    }
+    .tile {
+        background-image: url("app/templates/assets/images/jednostki1.png");
+        background-position: 0 0;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        margin-top: 5px;
+        z-index: 11;
+    }
+    .tile_active {
+        background: url("app/templates/assets/images/sprite.png") -144px 0px no-repeat;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 100;
+        color: white;
+    }
+    .tile_attack {
+        background-image: url("app/templates/assets/images/sprite.png");
+        background-position: -96px -122px;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 105;
+        color: white;
+        opacity: 0.7;
+    }
+	
+	.tile_torps {
+        background-image: url("app/templates/assets/images/sprite.png");
+        background-position: -96px -122px;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 105;
+        color: blue;
+        opacity: 0.2;
+    }
+	
+	.tile_Saper {
+        background-image: url("app/templates/assets/images/sprite.png");
+        background-position: 0 0;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 105;
+        color: white;
+    }
+	
+
+    .tile_moveto, .desant_unit, .tile_desant, .settle_city {
+        background: url(app/templates/assets/images/sprite.png) -144px -123px no-repeat;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 104;
+    }
+    /* CITY */
+    .cityAlly {
+        background: url("app/templates/assets/images/background/jednostki1.png") no-repeat -92px -825px;
+        height: 30px;
+        position: absolute;
+        width: 48px;
+        margin-left: 2px;
+        margin-top: 5px;
+    }
+    .cityAxis {
+        background: url("app/templates/assets/images/background/jednostki1.png") no-repeat -46px -825px;
+        height: 30px;
+        position: absolute;
+        width: 48px;
+        margin-left: 2px;
+        margin-top: 5px;
+    }
+    .mark_as_green {
+        color: #32CD32;
+        font-weight: bold;
+    }
+    .mark_as_red {
+        color: #ff6666;
+        font-weight: bold;
+    }
+    .commando
+    {
+        background-image: url("app/templates/assets/images/sprite.png");
+        background-position: 0 0;
+        height: 42px;
+        position: absolute;
+        width: 48px;
+        z-index: 104;
+    }
+    #miniMap {
+        background: url("app/templates/assets/images/maps/mini/{{ world.warMap }}") no-repeat;
+        position: absolute;
+		border: 1px solid;
+		height: 460px;
+		width: 460px;
+		display: none;
+		font-size: 12px;
+		z-index: 9;
+		bottom: 0px;
+		right: 0px;
+    }
+    #miniMap #miniMap_open {
+        background: #5b4533 none repeat scroll 0 0;
+        border: 1px solid #161616;
+        border-radius: 5px;
+        color: gold;
+        cursor: pointer;
+        font-size: 20px;
+        height: 40px;
+        left: -60px;
+        line-height: 40px;
+        padding: 5px;
+        position: absolute;
+        text-align: center;
+        top: 0;
+        width: 50px;
+        z-index: 8;
+        font-family: mcgreg;
+        text-shadow: 2px 2px 2px #000;
+        color: #e0c289;
+    }
+    #miniMap #miniMap_open:hover {
+        color: #f0ad4e;
+		left: -70px;
+    }
+    #miniMap .miniMapHex {
+        width: 0.292em;
+        height: 0.342em;
+        position: absolute;
+        cursor: pointer;
+    }
+    #miniMap .border {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1px;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+{% block footer %}
+{{ parent() }}
+{% endblock %}
+{% block footerJS %}
+{{ parent() }}
+<div id="miniMap" class="border">
+</div>
+	{% if player.SponsorAccount < DateNow %}
+		<div id="senseDol">
+			<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+			<!-- wichry_inside -->
+			<ins class="adsbygoogle"
+				 style="display:inline-block;width:728px;height:90px"
+				 data-ad-client="ca-pub-3574813742955681"
+				 data-ad-slot="8638485229"></ins>
+			<script>
+				 (adsbygoogle = window.adsbygoogle || []).push({});
+			</script>
+		</div>
+	{% endif %}
+<script type="text/javascript" src="app/templates/assets/js/hexlib.js"></script>
+<script src="https://www.wichry-wojny.eu:3000/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+
+    io = io.connect('https://www.wichry-wojny.eu:3000', {
+        'force new connection': true,
+        transports: ['xhr-polling']
+    });
+    // 'websocket', 
+    function socketConnect(mapIdent)
+    {
+        // Send the ready event.
+        io.emit('ready', {'ident': mapIdent});
+
+        io.on('noconn', function(data) {
+            jAlert('Nie udało się połączyć z serwerem mapy. Odśwież stronę.');
+        });
+    }
+    io.on('disconnect', function() {
+        var refresh = false;
+        $( window ).unload(function() {
+            refresh = true;
+        });
+        if (refresh === false) io.emit('ready', {'ident': '{{ player.sessionkey }}'});
+    });
+    io.on('message', function(data) {
+        if (readCookie('chatSounds') && data.info.playerID != {{ player.playerID }}) soundAPI.init(['maszyna.mp3'], false);
+        if($('#chatbox').find('#sb_'+data.info.chanType).length === 0)
+        {
+            $('#chatTab_'+data.info.chanType+' span').html('(N)');
+        }
+        if ($('#radio').css('display') == 'none' && readCookie('chatSounds') === null)
+        {
+            $('#przyciskRadio').html('<span class="blink">Ra[N]</span>');
+        }
+        $("#sb_"+data.info.chanType+' ul').append('<li><span class="date">'+ data.info.msgDate +':</span> <span class="sbUser_'+ data.info.nationID +'">'+ data.info.login +'</span> : '+data.message+'</li>');
+        $('#sb_'+data.info.chanType+' ul').animate({ scrollTop : $('#sb_'+data.info.chanType+' ul').height() * 20 }, 'slow');
+    });
+    function sendChatMsg(chatType){
+        jsonLoad('/send/msg/'+chatType, {'postData': {'msg': $('#msg_'+chatType).val()}}, true, function() { $('#msg_'+chatType).val(''); })
+    };
+/*
+    if (readCookie('chatSounds'))
+    {
+        $('input#isSoundOn').attr('checked', true);
+    }
+*/
+	/* ZEGAREK */
+			counter = [];
+			counterBuild = [];
+			counterK = [];
+			counterP = [];
+			counterT = [];
+			counterSP = [];
+			counterKU = [];
+			counterSilo = [];
+			function loadTimer(czas, lokalizacjaTimera, idTimera, timerData){
+				var s = czas;
+				//clearInterval(counter[idTimera]);
+				if(timerData == 1 ){ // uruchamiamy timer jednostek
+					clearInterval(counter[idTimera]);
+					counter[idTimera] = [setInterval(timer, 1000)]; // ustawienie funkcji odpowiedajacej za cykliczne wywolanie(co 1 s) funkcji timer()
+				}else if(timerData == 2){
+					clearInterval(counterBuild[idTimera]);
+					counterBuild[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 3){
+					clearInterval(counterK[idTimera]);
+					counterK[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 4){
+					clearInterval(counterP[idTimera]);
+					counterP[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 5){
+					clearInterval(counterT[idTimera]);
+					counterT[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 6){
+					clearInterval(counterSP[idTimera]);
+					counterSP[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 7){
+					clearInterval(counterKU[idTimera]);
+					counterKU[idTimera] = [setInterval(timer, 1000)];
+				}else if(timerData == 8){
+					clearInterval(counterSilo[idTimera]);
+					counterSilo[idTimera] = [setInterval(timer, 1000)];
+				}
+				
+				var min = s / 60;				// minuty
+				var h = min / 60;
+				var d = h / 24;	// dni
+				var sLeft = Math.floor(s  % 60);	// pozostało sekund		
+				var minLeft = Math.floor(min % 60);	// pozostało minut
+				var hLeft = Math.floor(h % 24);
+				var dLeft = Math.floor(d);
+				
+				if( dLeft == 0 ){
+					var dToTmer = '';
+				}else{
+					var dToTmer = dLeft+":";
+				}
+				// pozostało godzin	
+				if (minLeft < 10)
+				  minLeft = "0" + minLeft;
+				if (sLeft < 10)
+				  sLeft = "0" + sLeft;
+				if (hLeft < 10)
+				  hLeft = "0" + hLeft;
+				
+				
+				
+				
+				var out = dToTmer + ""+ hLeft + ":" + minLeft + ":" + sLeft; //tekst wyswietlony uzytkownikowi
+				if(document.getElementById("#"+lokalizacjaTimera+"")){
+					document.getElementById("#"+lokalizacjaTimera+"").innerHTML = out;
+				}
+				if( $("#"+lokalizacjaTimera+"").length == 1 ){
+					$("#"+lokalizacjaTimera+"").html(out); // przypisanie tekstu timera do odpowiedniego elementu html
+				}
+				function timer()
+				{
+					//console.log("counter "+lokalizacjaTimera);
+					--s;
+					var min = s / 60;
+					var h = min / 60;
+					var d = h / 24;	// dni
+					var sLeft = Math.floor(s  % 60);
+					var minLeft = Math.floor(min % 60);
+					var hLeft = Math.floor(h % 24);
+					var dLeft = Math.floor(d);
+				
+					if( dLeft == 0 ){
+						var dToTmer = '';
+					}else{
+						var dToTmer = dLeft+":";
+					}
+					if (minLeft < 10)
+					  minLeft = "0" + minLeft;
+					if (sLeft < 10)
+					  sLeft = "0" + sLeft;
+					if (hLeft < 10)
+					hLeft = "0" + hLeft;   
+					  
+					var out = dToTmer + ""+ hLeft + ":" + minLeft + ":" + sLeft; //tekst wyswietlony uzytkownikowi
+					if( $("#"+lokalizacjaTimera+"").length == 1 ){
+						$("#"+lokalizacjaTimera+"").html(out); // przypisanie tekstu timera do odpowiedniego elementu html
+					}
+					if( s <= 0)
+					{
+							if(timerData == 1 ){// licznik ejdnostek
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "checkTiming",
+									data     : {'idTimera':lokalizacjaTimera},
+								}).done(function( data ) {
+									if (data.error)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.error,
+											'theme': 'error'
+										});
+									}
+									else
+									{	
+										if(data.timer == 'off'){
+											if( $("#"+lokalizacjaTimera+"").length == 1 ){
+												$("#"+lokalizacjaTimera+"").html('0:0:00'); // przypisanie tekstu timera do odpowiedniego elementu html
+											}
+											clearInterval(counter[idTimera]);
+											hideActiveWindow(true);
+											hideWindow(true);
+										}
+									}
+								});
+							}else if( timerData == 2 ){// uruchamimy licznik w fabrykach
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "checkTimingBuild",
+									data     : {'idTimera':lokalizacjaTimera},
+								}).done(function( data ) {
+									if (data.error)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.error,
+											'theme': 'error'
+										});
+									}
+									else
+									{	
+										if(data.timer == 'off'){
+											if($("#"+lokalizacjaTimera+"").length == 1 ){
+												$("#"+lokalizacjaTimera+"").html('0:0:00');
+											}
+												hideActiveWindow(true);
+												hideWindow(true);
+												$.fn.jAlert({
+													'title': 'Pojawił się błąd',
+													'message': data.goto,
+													'theme': 'error'
+												});
+											clearInterval(counterBuild[idTimera]);
+										}
+									}
+								});
+							}else if( timerData == 3 ){// uruchamimy licznik w fabrykach
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "checkTimingK",
+									data     : {'idTimera':lokalizacjaTimera},
+								}).done(function( data ) {
+									if (data.error)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.error,
+											'theme': 'error'
+										});
+									}
+									else
+									{	
+										if(data.timer == 'off'){
+											if($("#"+lokalizacjaTimera+"").length == 1 ){
+												$("#"+lokalizacjaTimera+"").html('0:0:00');
+											}
+											clearInterval(counterK[idTimera]);
+											$('#timerK').remove();
+											$('#licznikKasa').append('<div id="finanse" title="{{ constant('temp_map25') }}!"></div>');
+										}
+									}
+								});
+							}else if( timerData == 4 ){// licznik w przycisku promocji
+								if($("#"+lokalizacjaTimera+"").length == 1 ){
+									$("#"+lokalizacjaTimera+"").html('0:0:00');
+								}
+								clearInterval(counterK[idTimera]);
+								$('#promocja_button').remove();
+								
+							}else if( timerData == 5 ){// licznik w technologii
+								if($("#"+lokalizacjaTimera+"").length == 1 ){
+									$("#"+lokalizacjaTimera+"").html('0:0:00');
+								}
+								clearInterval(counterT[idTimera]);
+							}else if( timerData == 6 ){// licznik surowców
+								if($("#"+lokalizacjaTimera+"").length == 1 ){
+									$("#"+lokalizacjaTimera+"").html('0:0:00');
+								}
+								clearInterval(counterSP[idTimera]);
+							}else if( timerData == 7 ){// licznik kolejki jednostek
+								if($("#"+lokalizacjaTimera+"").length == 1 ){
+									$("#"+lokalizacjaTimera+"").html('0:0:00');
+									listProduction();
+								}
+								clearInterval(counterKU[idTimera]);
+							}else if( timerData == 8 ){// licznik silosu
+								if($("#"+lokalizacjaTimera+"").length == 1 ){
+									$("#"+lokalizacjaTimera+"").html('0:0:00');
+								}
+								clearInterval(counterSilo[idTimera]);
+							}
+						return;
+					}
+				}
+			}
+		
+		/* KONIEC ZEGARKA  */
+		//var surka = {{ rawMaterials }};
+		//var przyrost = {{ upSur }};
+		function materials(){
+			$.ajax({
+				type     : "GET",
+				dataType : "json",
+				url      : "checkMaterials",
+			}).done(function( data ) {
+				if (data.error)
+				{
+					$.fn.jAlert({
+						'title': 'Pojawił się błąd',
+						'message': data.error,
+						'theme': 'error'
+					});
+				}
+				else
+				{
+					if( data.rawMaterials > 0 ){
+						$("#rawMaterials").html( data.rawMaterials ).attr('title', 'Twoje surowce');
+						loadTitle();
+					}
+				}
+			});
+			//surka = surka+przyrost;
+			//$("#rawMaterials").html(surka);
+		}
+		
+		function listProduction(){
+			$.ajax({
+				type     : "GET",
+				dataType : "json",
+				url      : "checkProductionQueue",
+			}).done(function( data ) {
+				if (data.error)
+				{
+					$.fn.jAlert({
+						'title': 'Pojawił się błąd',
+						'message': data.error,
+						'theme': 'error'
+					});
+				}
+				else
+				{
+					$("#productionQueue").css('display', 'block').html( data.productionQueue );
+					if( data.toTimer > 0 ){
+						$("#timerKU").html( data.toTimer );
+						
+						loadTimer( data.toTimer, 'timerKU', playerObj.id, 7 );
+					}
+				}
+			});
+		}
+
+$(document).ready(function() {
+	//zegar();
+		
+        $('#chatbox').on('change', 'input#isSoundOn', function() {
+            if ($(this).attr('checked'))
+            {
+                $(this).attr('checked', false);
+                eraseCookie('chatSounds');
+            }
+            else
+            {
+                $(this).attr('checked', true);
+                createCookie('chatSounds', 1, 30);
+            }
+        });
+
+	var ts = Math.round(new Date().getTime() / 1000| 0);
+	if( playerObj.timeK  > ts ){
+		newTime = playerObj.timeK - ts;
+		loadTimer( newTime, 'timerK', playerObj.id, 3 );
+	}
+	
+	if( playerObj.timeP > ts ){
+		newTime2 = playerObj.timeP - ts;
+		loadTimer( newTime2, 'timerP', playerObj.id, 4 );
+	}
+	
+	if( playerObj.timeSP > ts ){
+		newTime3 = playerObj.timeSP - ts;
+		loadTimer( newTime3, 'timerSP', playerObj.id, 6 );
+	}
+		setInterval( materials, 10000);// uruchamiamy licznik przyrostu surki
+		listProduction();
+(function(hex, undefined) {
+
+    var elem = document.getElementById("ww-mapa"),
+            area = [],
+            regions = {},
+            clickedFields = {},
+            units = {},
+            markerType = 0,
+            mapGrid,
+            mapLayer,
+            tacticalData,
+            mapFieldData = {};
+
+    // Creating a grid
+    var grid = hex.grid(elem, {startX: {{startCoords.x}}, startY: {{startCoords.y}}});
+
+    // Element to show the currently hovered tile
+    var curr = document.createElement("div");
+    curr.className = curr.className + " tile_active";
+    curr.style.display = "none";
+    var curratt = document.createAttribute("id");
+    curratt.value = "cursor";
+    curr.setAttributeNode(curratt);
+    grid.root.appendChild(curr);
+
+    function getArea() {
+        // y 113 x 132
+
+        var arrtapcos = {};
+        var x = 0;
+        var y = 0;
+        for (i = 0; i < 16000; i++) {
+            var key = hex.key(x, y);
+            arrtapcos[key] = {x: x, y: y};
+
+            if (x === 132 && y === -179)
+                break;
+
+            if (y % (-113 + Math.ceil(x / 2) * -1) === 0 && y !== 0)
+            {
+                x++;
+                y = Math.ceil(x / 2) * -1;
+            }
+            else
+                y--;
+        }
+
+        return arrtapcos;
+    }
+
+    function visitNeighbors(x, y, callback) {
+        var i, j;
+        for (i = -1; i < 2; i++) {
+            for (j = -1; j < 2; j++) {
+                if (i !== j) {
+                    callback(x + i, y + j);
+                }
+            }
+        }
+    }
+
+    var miniMap = {
+        minimap: document.getElementById("miniMap"),
+        reDraw: function(units)
+        {
+            for (r in units) {
+                this.addMUnit(units[r]);
+            }
+        },
+        addUnit: function(unit)
+        {
+            var point = document.createElement("div");
+            point.className = "miniMapHex hex_"+unit.x+"_"+unit.y;
+
+            if (playerObj.nation == unit.nation) point.style.backgroundColor = "green";
+            else point.style.backgroundColor = "red";
+            if (typeof unit.owner !== 'undefined' && playerObj.id == unit.owner) point.style.backgroundColor = "orange";
+
+            // coords
+            point.style.left = (unit.x * 3.46)+'px';
+            point.style.top = (((Math.abs(unit.y)-Math.floor(unit.x / 2)) -1) * 4.04 )+'px';
+
+            var atr = document.createAttribute("id");
+            atr.value = "MMunit-"+unit.id;
+            point.setAttributeNode(atr);
+            var atrX = document.createAttribute("x");
+            atrX.value = unit.x;
+            point.setAttributeNode(atrX);
+            var atrY = document.createAttribute("y");
+            atrY.value = unit.y;
+            point.setAttributeNode(atrY);
+            this.minimap.appendChild(point);
+        },
+        removeUnit: function (unit)
+        {
+            if (typeof unit.id == 'undefined')
+            {
+                $('div#miniMap').find("#hex_" + unit.x + "_" + unit.y).remove();
+            }
+            else $('#MMunit-'+unit.id).remove();
+        }
+    }
+
+    function addUnit(unitData)
+    {
+        var ukey = hex.key(unitData.x, unitData.y);
+		if (typeof units[ukey] === 'undefined') {
+            inv = grid.screenpos(unitData.x, unitData.y);
+
+            // To jest miasto
+            if (unitData.unitType == 7) {
+
+                if (playerObj.id == unitData.owner)
+                {
+                    grid.centerOnCoords(unitData.x, unitData.y);
+                }
+                $(document.createElement("div")).attr({
+                    id: 'unit_' + unitData.x + '_' + unitData.y,
+                    style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+                    class: 'uid_' + unitData.id + ' '+(unitData.nation == 1 ? 'cityAlly' : 'cityAxis')
+                }).appendTo('div.map-assets').html('<div class="active_point ' + (playerObj.nation == unitData.nation ? 'mark_as_green' : 'mark_as_red') + ' ' + (playerObj.id == unitData.owner ? 'playerUnitMark" style="margin-top: -5px; margin-left: -2px;"' : '" style="margin-top: -5px; margin-left: -2px;"') + '>' + unitData.DefensePoints / 10 + '</div>');
+            }
+            else if (unitData.unitType != 7) {
+                if (playerObj.id == unitData.owner) {
+                    $(document.createElement("div")).attr({
+                        id: 'unit_' + unitData.x + '_' + unitData.y,
+                        num: unitData.id,
+                        style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+                        class: 'units uid_' + unitData.id + ' unit-' + unitData.uid
+                    }).appendTo('div.map-assets').html('<div class="active_point playerUnitMark">' + unitData.DefensePoints / 10 + '</div>');
+                }
+                else
+                {
+                    $(document.createElement("div")).attr({
+                        id: 'unit_' + unitData.x + '_' + unitData.y,
+                        num: unitData.id,
+                        style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+                        class: 'units uid_' + unitData.id + ' unit-' + unitData.uid +' '+unitData.un
+                    }).appendTo('div.map-assets').html('<div class="active_point ' + (playerObj.nation == unitData.nation ? 'mark_as_green' : 'mark_as_red') + '">' + unitData.DefensePoints / 10 + '</div>');
+                }
+				//removeUnit(hex.key(unitData.moveFromX, unitData.moveFromY));
+            }
+			units[ukey] = unitData;
+            miniMap.addUnit(unitData);
+        }
+    }
+    function removeUnit(unitData)
+    {
+        if (typeof unitData.id != 'undefined')
+        {
+            $('div.map-assets').find(".uid_" + unitData.id).remove();
+        }
+        else $('div.map-assets').find("#unit_" + unitData.x + "_" + unitData.y).remove();
+
+        delete units[hex.key(unitData.x, unitData.y)];
+
+        // usuwa jednostke z minimapy
+        miniMap.removeUnit(unitData);
+    }
+	function addCustomField(x,y,fieldCustom)
+	{
+		inv = grid.screenpos(x, y);
+		$(document.createElement("div")).attr({
+			id: 'field_' + x + '_' + y,
+			style: 'left:' + inv.x + 'px; top:' + inv.y + 'px;',
+			class: 'fields field-'+fieldCustom
+		}).appendTo('div.map-assets');
+    }
+	
+	
+    function addRegion(x, y, fieldType, fieldCustom, fieldTxt)
+    {
+        var key = hex.key(x, y);
+        if (typeof area[key] === 'undefined')
+            return;
+        /*
+        if (typeof regions[key] !== 'undefined' && parseInt(regions[key].fieldType) === parseInt(fieldType))
+            return;
+        */
+        regions[key] = {x: x, y: y, fieldType: fieldType, fieldCustom: fieldCustom, fieldTxt: fieldTxt };
+
+    }
+	
+    area = getArea();
+
+    function startRegionEvents() {
+        grid.addEvent("tileover", function (e, x, y, fieldType, fieldTxt) {
+            var inv = grid.screenpos(x, y);
+            curr.style.left = inv.x + "px";
+            curr.style.top = inv.y + "px";
+            var curratt = document.createAttribute("coords");
+            curratt.value = x+','+y;
+            curr.setAttributeNode(curratt);
+            if (typeof regions[hex.key(x, y)] != 'undefined') {
+                d = document.getElementById("coordsData");
+                d.innerHTML =  [x, y] + '<br> '+regions[hex.key(x, y)].fieldTxt;
+            }
+        }, 'cursor');
+
+        // region to match area
+        region = hex.reg = hex.region(grid, {
+            inside: function (x, y) {
+                return (hex.key(x, y) in area);
+            }
+        });
+
+        region.addEvent("regionout", function (e, x, y) {
+            curr.style.display = "none";
+        }, 'regionout');
+        // Setting mouse movement related tile events
+        region.addEvent("regionover", function (e, x, y) {
+            curr.style.display = "";
+        }, 'regionover');
+
+        region.addEvent("regionclick", function (e, x, y) {
+		}, 'click');
+    }
+	
+	
+	
+	
+	
+    function showPoints(x, y, tdID, pointType, unitsID, tury, rodzajPrzeszkody ) {
+		var wartosc_pogodyR = 1;
+        var wartosc_pogodyA = 1;
+		if( units[hex.key(x, y)].Specialty == 18 )//zanurzony okręt podwodny traci 25% wartości ruchu////
+        {
+            wartosc_pogodyR = 0.75;
+        }
+
+		if( {{ world.hardGame }} > 1  )//jeśli trudność świata jest WOJAK lub WETERAN, pogoda ma wpływ na ruch
+		{
+			if( tacticalData[tdID].CorpsId == 1 &&  ( {{ world.WarWeather }} == 1 || {{ world.WarWeather }} == 3 || {{ world.WarWeather }} == 6 ) )//pichota, woda w kamaszach to nic dobrego
+			{
+				wartosc_pogodyR = 0.75;
+			}
+			if( ( tacticalData[tdID].CorpsId == 3 || tacticalData[tdID].CorpsId == 5 || tacticalData[tdID].CorpsId == 6 )  && {{ world.WarWeather }} == 1 )//pichota, woda w kamaszach to nic dobrego
+			{
+				wartosc_pogodyA = 0.75;
+			}
+			if( ( tacticalData[tdID].CorpsId == 5  || tacticalData[tdID].CorpsId == 6 || tacticalData[tdID].CorpsId == 3 )  &&  {{ world.WarWeather }} == 2 )//opady śniegu
+			{
+				wartosc_pogodyA = 0.75;
+			}
+			if( tacticalData[tdID].CorpsId == 5 &&	units[hex.key(x, y)].Specialty != 18 &&  ( {{ world.WarWeather }} == 2 || {{ world.WarWeather }} == 7 ) )//wynurzony okręt podwodny lub jednostka nawodna
+			{
+				wartosc_pogodyR = 0.50;
+				wartosc_pogodyA = 0.50;
+			}
+
+			if( ( tacticalData[tdID].CorpsId == 4 || pointType == 'tile_desant' ) &&  ( {{ world.WarWeather }} == 1 || {{ world.WarWeather }} == 2 || {{ world.WarWeather }} == 8 ) )// lotnictwo, zła pogoda- ruch = 1
+			{
+				wartosc_pogodyR = 0.10;
+				wartosc_pogodyA = 0;
+			}
+			if( ( tacticalData[tdID].CorpsId == 3 || tacticalData[tdID].CorpsId == 6 || ( tacticalData[tdID].CorpsId == 5 && units[hex.key(x, y)].Specialty != 18 ) ) &&   {{ world.WarWeather }} == 8 )// artyleria, zawieja i zamieć,
+			{
+				wartosc_pogodyA = 0.75;
+			}
+		}
+
+		var
+		queue = [[x, y, 0]],
+		fields = {},
+		deadzone = {},
+		startHex = {x: x, y: y};
+
+    while (queue.length) {
+        (function (x, y, distance) {
+            var key = hex.key(x, y);
+            if (!(key in fields)) {
+
+                if (String(startHex.x + ":" + startHex.y).localeCompare(x + ":" + y) !== 0)
+                {
+                    // Martwe pole dla atakujących
+                    if ( ( pointType  == 'tile_attack' && distance < tacticalData[tdID].martwe_pole ) ||  ( pointType  == 'tile_desant' && distance < 20 )  )
+                    {
+                        deadzone[key]= {
+                            x: x,
+                            y: y
+                        };
+                    }
+                    fields[key] = {
+                        x: x,
+                        y: y
+                    };
+                }
+                visitNeighbors(x, y, function (x, y) {
+                    var keyH = hex.key(x, y);
+					
+                    if (typeof regions[keyH] !== 'undefined') {
+					
+                        // Tutaj ustawiamy warunki dla ruchu jednostek różnego typu po rożnym terenie
+                        var moveForward = 1;
+						
+                        if (typeof units[hex.key(startHex.x, startHex.y)] !== 'undefined' && pointType  != 'tile_attack' && pointType  != 'tile_Saper' && pointType  != 'tile_oplot' && pointType  != 'tile_torpeda' && pointType  != 'tile_glebinowe' ) {
+                            // rozpatrujemy ruch
+							
+							if (typeof mapFieldData[tacticalData[tdID].CorpsId] !== 'undefined') {
+                                if (typeof mapFieldData[tacticalData[tdID].CorpsId][regions[keyH].fieldType] === 'number') {
+									if (units[hex.key(startHex.x, startHex.y)].Specialty == 18 && ( regions[keyH].fieldType == 9 || regions[keyH].fieldType == 1 )) {
+                                        moveForward = 1000;
+                                    }
+                                    else if(units[hex.key(startHex.x, startHex.y)].unitType == 4 || pointType == 'tile_desant' ) {//jednostka jest samolotem, więc może latać nad wszystkimi samolotami
+                                        moveForward = 1;
+                                    }
+                                    else
+                                    {
+                                        moveForward = mapFieldData[tacticalData[tdID].CorpsId][regions[keyH].fieldType];
+                                    }
+                                }
+                                else if (typeof mapFieldData[tacticalData[tdID].CorpsId][regions[keyH].fieldType] === 'object') {
+									moveForward = mapFieldData[tacticalData[tdID].CorpsId][regions[keyH].fieldType][regions[keyH].fieldCustom];
+                                }
+
+                            }
+                        }else if(typeof units[hex.key(startHex.x, startHex.y)] !== 'undefined' && ( pointType  == 'tile_torpeda' || pointType  == 'tile_glebinowe') ) {
+							
+							if ( ( regions[keyH].fieldType == 9 ) || ( regions[keyH].fieldType == 1) || ( regions[keyH].fieldType == 8 ) ) {
+								moveForward = 1;
+							}else{
+								moveForward = 1000;
+							}
+							
+						
+						}
+                        // Dodajemy do dystansu "opór" terenu
+                        var checkdistance = distance + moveForward;
+                        var endPoint = Math.floor( tacticalData[tdID].ruch * wartosc_pogodyR * tury );
+
+                        if (pointType  == 'tile_attack') endPoint = Math.floor( tacticalData[tdID].zasieg_strzalu * wartosc_pogodyA );
+                        if (pointType  == 'tile_oplot') endPoint = Math.floor( tacticalData[tdID].ostrzal_przeciwlotniczy * wartosc_pogodyA );
+                        if (pointType  == 'tile_torpeda') endPoint = Math.floor( tacticalData[tdID].ostrzal_torpeda * wartosc_pogodyA );
+                        if (pointType  == 'tile_glebinowe') endPoint = Math.floor( tacticalData[tdID].ostrzal_glebinowe * wartosc_pogodyA );
+                        if (pointType  == 'tile_Saper') endPoint = 1;
+						if (pointType  == 'tile_desant') endPoint = 100;
+						
+						
+                        if (checkdistance <= endPoint) {
+                            // Jeśli nikt na polu nie stoi to dodajemy do kolejki
+                            if (pointType  == 'tile_attack' || pointType  == 'tile_Saper' || pointType  == 'tile_oplot' || pointType  == 'tile_torpeda' || pointType  == 'tile_glebinowe' || pointType  == 'tile_desant' ) queue.push([x, y, checkdistance]);
+                            else if (typeof units[keyH] === 'undefined') queue.push([x, y, checkdistance]);
+                            else if ( units[keyH].nation == playerObj.nation ) queue.push([x, y, checkdistance]);
+                            else if ( units[hex.key(startHex.x, startHex.y)].unitType == 4 ) queue.push([x, y, checkdistance]);
+                        }
+
+                    }
+                });
+            }
+        }).apply(null, queue.shift());
+    }
+		switch(pointType){// rozróżnienie jakim rodzajem strzału atakuje gracz
+			case 'tile_oplot':
+				rodzajPrzeszkody = 1;
+				break;
+			case 'tile_torpeda':
+				rodzajPrzeszkody = 2;
+				break;
+			case 'tile_glebinowe':
+				rodzajPrzeszkody = 3;
+				break;
+			case 'tile_attack':
+				rodzajPrzeszkody = 0;
+				break;
+		}
+
+		if( pointType == 'tile_oplot' || pointType == 'tile_torpeda' || pointType == 'tile_glebinowe' ){
+			pointType = 'tile_attack';
+		}
+
+
+		$.each(fields, function (index, value) {
+			var key = hex.key(value.x, value.y);
+			if (typeof deadzone[key] === 'undefined')
+			{
+				inv = grid.screenpos(value.x, value.y);
+				$(document.createElement("div")).attr({
+					id: 'field_' + value.x + '_' + value.y,
+					num: unitsID,
+					tury: tury,
+					code: rodzajPrzeszkody,
+					hex: hex.key(startHex.x, startHex.y),
+					style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+					class: pointType+' default-tile'
+				}).appendTo('div.map-assets');
+			}
+		});
+		$ ("#preloader").fadeOut();
+    }
+
+
+    function closePanels()
+    {
+        // Zamykam otwarte panele, bo tak
+        $('.unit_panel').each(function(index) {
+            $(this).remove();
+        });
+		$('#infoTooltip').css('display','none');
+    }
+	function sumaTD(jednostki, tacticalData, sumowane)
+	{
+		var wynik = 0;
+		$.each(jednostki, function(index, value) {
+		  wynik = wynik + parseInt(tacticalData[value][sumowane])
+		});
+		return wynik;
+	}
+	function minTD(jednostki, sumowane)
+	{
+		var wynik = 1000;
+		var tdid = 0;
+		$.each(jednostki, function(index, value) {
+            if (wynik > parseInt(tacticalData[value][sumowane])) {
+                wynik = parseInt(tacticalData[value][sumowane]);
+                tdid = value;
+            }
+		});
+		return tdid;
+	}
+    // Open Minimap
+    $('#miniMap_open').click(function() {
+		$("Div#miniMap").slideToggle( "slow");
+		
+		/*
+		if ($("Div#miniMap").css("right") == '-471px') $("Div#miniMap").css('right', '1px');
+        else $("Div#miniMap").css('right', '-471px');
+		*/
+    });
+    $('#miniMap').on('click touchstart', '.miniMapHex', function() {
+        grid.centerOnCoords($(this).attr('x'), $(this).attr('y'));
+    });
+
+    $('div.map-assets').on("click touchstart", "div.unit_panel #close_panel", function() {
+		if(  $("Div.zegarek1").length == 1 ){
+			var id = $("Div.zegarek1").attr('id').split('_');
+			clearInterval(counter[id[0]+1+playerObj.id]);
+			clearInterval(counter[id[0]+2+playerObj.id]);
+		}
+		
+		
+		$(this).parent('.unit_panel').remove();
+    });
+    $('div.map-assets').on("click touchstart", "div.field_panel #close_panel", function() {
+        $(this).parent('.field_panel').remove();
+    });
+    $('div.map-assets').on("click touchstart", "div.active_point", function() {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+        // Zamukam otwarte panele
+        closePanels();
+
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+        $('.wezel').each(function(index) {
+            $( this ).remove();
+        });
+		$('.loReload').each(function(index) {
+            $( this ).remove();
+        });
+        $('.un').each(function(index) {
+            var goToDiv = $(this);
+            if ( goToDiv.attr('num') === 'undefined') return;
+            var gotoCoords = goToDiv.attr('id').split('_');
+            var goToX = gotoCoords[1];
+            var goToY = gotoCoords[2];
+            delete units[hex.key(goToX, goToY)];
+            $( this ).remove();
+        });
+		var clickedUnit = $(this).parent('div');
+        var gotoCoords = clickedUnit.attr('id').split('_');
+        var x = parseInt(gotoCoords[1]);
+        var y = parseInt(gotoCoords[2]);
+        //grid.centerOnCoords(x, y);
+        var ukey = hex.key(x, y);
+		if (typeof units[ukey] === 'undefined') return;
+        kasa = '{{ player.softCurrency+player.PremiumCurrency }}';
+        if (clickedUnit.find('.unit_panel').length == 0)
+        {
+            if(  units[ukey].unitType == 7 )
+			{
+				if( playerObj.id == units[ukey].owner ){
+					$.ajax({
+						type     : "POST",
+						dataType : "json",
+						url      : "showCityData",
+						beforeSend: function() {
+							that.data('inprogress', 1);
+						},
+					}).done(function( data ) {
+						that.data('inprogress', 0);
+						if (data.printError)
+						{
+							$.fn.jAlert({
+								'title': 'Pojawił się błąd',
+								'message': data.printError,
+								'theme': 'error'
+							});
+							pageObj.blockClick = false;
+						}
+						else
+						{
+							restoration = '';
+							if (units[ukey].DefensePoints < 100 && kasa  >=1000 )
+							{
+								restoration = '<div class="napraw" class="unitOption" zadanie="3" unitid="'+units[ukey].id+'">{{ constant("temp_map5") }} {{ constant("temp_map1") }} {{ constant("temp_map3")  }}</div>';
+							}
+							else if ( units[ukey].DefensePoints >= 100 && units[ukey].DefensePoints < 150 && kasa  >= 2000  )
+							{
+								restoration = '<div class="napraw" class="unitOption" zadanie="3" unitid="'+units[ukey].id+'">{{ constant("temp_map6") }} {{ constant("temp_map1") }} {{ constant("temp_map4")  }}</div>';
+							}
+							if( data.time > 0 ){
+								var ts = Math.round(new Date().getTime() / 1000| 0);
+								var timeToEnd = data.time - ts;
+								loadTimer( timeToEnd, 'buildUp'+data.numID+'', data.num, 5 );
+							}
+							$('#cityPlane').css('display','block');
+							$('#cityPlane').html(data.cityPlane);
+							$('#cityPlane').append('<div class="city_panel">'+data.showData+''+ restoration +'</div>');
+							loadTitle();
+						}
+					}).fail(function(jqXHR, textStatus, errorThrown) {
+						that.data('inprogress', 0);
+						alert(textStatus);
+					});
+				}
+				else
+				{
+					restoration = '';
+					if( units[ukey].CityName == 'Berlin' )
+					{
+						nick = 'Stolica Niemiec';
+						if (units[ukey].DefensePoints < 100 && kasa >= 1000 && playerObj.nation == units[ukey].nation  )
+						{
+							restoration = '<div class="napraw" class="unitOption" zadanie="3" unitid="'+units[ukey].id+'">{{ constant("temp_map5") }} {{ constant("temp_map2") }} {{ constant("temp_map3")  }}</div>';
+						}
+					}
+					else if( units[ukey].CityName == 'Warszawa' )
+					{
+						nick = 'Stolica Polski';
+						if (units[ukey].DefensePoints < 100 && kasa >= 1000 && playerObj.nation == units[ukey].nation  )
+						{
+							restoration = '<div class="napraw" class="unitOption" zadanie="3" unitid="'+units[ukey].id+'">{{ constant("temp_map6") }} {{ constant("temp_map2") }} {{ constant("temp_map3")  }}</div>';
+						}
+					}
+					else
+					{
+						nick = 'Miasto gracza '+units[ukey].nickName;
+					}
+
+					if( units[ukey].playerVacation != 0 )
+					{
+						vac ='Miasto posiada ochronę do dnia '+units[ukey].playerVacation;
+					}
+					else
+					{
+					  vac =' ';
+					}
+					clickedUnit.append('<div class="unit_panel"><div id="cityBox"><strong id="cityName">'+units[ukey].CityName+'</strong> '+nick+'<div class="vacation">'+ vac +' '+ restoration +'</div></div><div id="close_panel"></div></div>');
+					$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/panel_miasto.png)');
+					$('.unit_panel').css('width','250px');
+					$('.unit_panel').css('height','150px');
+					$('#top-panel').css('width','244px');
+				}
+			}
+			else
+			{
+				clickedUnit.append('<div class="unit_panel">\
+										<div id="top-panel">\
+											<div id="sztaby_glob">\
+											</div>\
+											<div class="tytul">\
+												<div class="top"></div>\
+												<div class="center">\
+													<span class="srobka left"></span>\
+													<span id="nazwa"></span>\
+													<span class="srobka"></span>\
+													<div class="sklad"></div>\
+													<div class="kupiona"></div>\
+												</div>\
+												<div class="bottom"></div>\
+											</div>\
+											<div id="napraw">\
+											</div>\
+											<div id="plus-minus-tury">\
+											</div>\
+											<div class="ruch">\
+												<div id="ruch"></div>\
+											</div>\
+											<div class="atak">\
+												<div id="atak"></div>\
+											</div>\
+											<div id="'+units[ukey].id+'_1" class="zegarek1"></div>\
+											<div id="'+units[ukey].id+'_2" class="zegarek2"></div>\
+										</div>\
+										<div id="mission-panel">\
+											<div id="extra">\
+											</div>\
+										</div>\
+										<div id="center-panel">\
+										   <span id="tabela"></span>\
+										</div>\
+										<div id="bottom-panel">\
+										</div>\
+										<div id="close_panel"></div>\
+									</div>');
+					//ładuję tło dla unit panel
+					switch( parseInt(tacticalData[units[ukey]["td"][0]].CorpsId) ){
+						case 1://piechota
+						$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tlopiechota.png)');
+						break;
+						case 2://pancerne
+						$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tloczolg.png)');
+						break;
+						case 3://przeciwlotnicze
+						$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tloartyleria.png)');
+						break;
+						case 4://lotnictwo
+						$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tlolotnictwo.png)');
+						break;
+						case 5://flota
+							if(units[ukey].UnderWater == 1 )
+							{
+								$('.unit_panel').css("background","url(./app/templates/assets/images/units_bg/tlookretpodwodny.png)");
+							}
+							else
+							{
+								$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tlookret.png)');
+							}
+						break;
+						case 6://artyleria
+						$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/tloartyleria.png)');
+						break;
+					}
+					// kod odpowiedzialny za budowanie silosów na mapkach morskich
+					var buildSilo = '';
+					if( {{ world.warMapNum }} ==  2 ){
+						var buildSilo = '<div id="buildSilo" unitid="'+units[ukey].id+'">buduj silos</div>';
+					}
+				
+				if( playerObj.id == units[ukey].owner && units[ukey].Specialty != 21 )
+				{
+					$("#nazwa").html("<strong>"+units[ukey].nazwa+"</strong>");
+						if( units[ukey].goldUnit != null )
+						{
+							$(".kupiona").html('<strong title="{{ constant("mapa_s") }}">S</strong>');
+						}
+						if( units[ukey].td.length > 1 )
+						{
+							$(".sklad").html('<strong title="{{ constant("mapa_sklad_formacji") }}" >T</strong>');
+						}
+						$("#tabela").html('<table><tr class="naglowek_panel"><td class="title">{{ constant("korpus_txt") }}</td><td title="{{ constant("artyleria_txt") }}" ></td><td title="{{ constant("piechota_txt") }}"></td><td title="{{ constant("pancerne_txt") }}"></td><td title="{{ constant("przeciwlotnicze_txt") }}"></td><td title="{{ constant("lotnictwo_txt") }}"></td><td title="{{ constant("flota_txt") }}"></td></tr><tr><td class="title">{{ constant("atak_txt") }}</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_artyleria")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_piechota")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_pancerne")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_przeciwlotnicze")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_lotnictwo")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"atak_flota")+'</td></tr><tr class="b"><td class="title">{{ constant("obrona_txt") }}</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_artyleria")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_piechota")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_pancerne")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_przeciwlotnicze")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_lotnictwo")+'</td><td>'+sumaTD(units[ukey].td,tacticalData,"obrona_flota")+'</td></tr></table>');
+						$("#bottom-panel").html('<div id="ruch_atak"><div id="ruch_txt">{{ constant("zasieg_ruchu_txt") }}</div><div id="zasieg_ruchu">'+tacticalData[minTD(units[ukey].td,"ruch")].ruch+'</div><div id="strzal_txt">{{ constant("zasieg_strzalu_txt") }}</div><div id="zasieg_strzalu">'+tacticalData[minTD(units[ukey].td,"martwe_pole")].martwe_pole+'-'+tacticalData[minTD(units[ukey].td,"zasieg_strzalu")].zasieg_strzalu+'</div><div id="widocznosc_txt">{{ constant("zasieg_widzenia_txt") }}</div><div id="zasieg_widzenia">'+tacticalData[minTD(units[ukey].td,"zasieg_widzenia")].zasieg_widzenia+'</div></div><div id="tactic"><div id="doswiadczenie_txt">{{ constant("doswiadczenie_txt") }}</div><div id="doswiadczenie">'+units[ukey].experience+'</div><div id="pancerz_txt">{{ constant("pancerz_txt") }}</div><div id="pancerz">'+units[ukey].DefensePoints+'</div><div id="morale_txt">{{ constant("morale_txt") }}</div><div id="morale">'+units[ukey].Morale+'</div><div id="dostepne_tury_txt">{{ constant("dostepne_tury_txt") }}</div><div id="dostepne_tury">'+units[ukey].unitTurn+'</div></div>');
+						$("#plus-minus-tury").html('<div class="plus-minus"><span id="plus"><img src="./app/templates/assets/images/panel/bt_02.png" width="24" height="21" alt="PLUS" /></span><span id="minus"><img src="./app/templates/assets/images/panel/bt_03.png" width="24" height="21" alt="MINUS" /></span></div><div class="cyfra" id="cyfra">1</div><div class="tury"><div id="tury"><span>{{ constant("tury_txt") }}</span></div></div>');
+						$("#atak").html('<img src="./app/templates/assets/images/panel/bt_04.png" width="36" height="35" alt="{{ constant("atak_txt") }}" /><span>{{ constant("atak_txt") }}</span>');
+						$("#ruch").html('<img src="./app/templates/assets/images/panel/bt_04.png" width="36" height="35" alt="{{ constant("ruch_txt") }}" /><span>{{ constant("ruch_txt") }}</span>');
+						$("#napraw").html('<div class="naprawPancerz" >{{ constant("napraw_pancerz_txt") }}</div><div id="przycisk_napraw" class="unitOption" title="{{ constant("napraw_pancerz_txt") }}" zadanie="3" unitid="'+units[ukey].id+'"></div>');
+						$("#sztaby_glob").html( units[ukey].belongHQ);
+					
+					if({{ world.timing }} == 1 ){
+						var turyJednostki = 0;
+						var ts = Math.round(new Date().getTime() / 1000| 0);
+						if( units[ukey].timing1 < ts ){
+							$("#"+units[ukey].id+"_1").html('');
+							var turyJednostki = 1;
+						}else{
+							newTime = units[ukey].timing1 - ts;
+							loadTimer( newTime, units[ukey].id+'_1', units[ukey].id+1+playerObj.id, 1 );
+						}
+						if( units[ukey].timing2 < ts ){
+							$("#"+units[ukey].id+"_2").html('');
+							var turyJednostki = turyJednostki + 1;
+						}else{
+							newTime = units[ukey].timing2 - ts;
+							loadTimer( newTime, units[ukey].id+'_2', units[ukey].id+2+playerObj.id, 1 );
+						}
+						if( units[ukey].timing1 > ts && units[ukey].timing2 > ts ){
+							$("#plus-minus-tury").html("");
+							$("#ruch").html("");
+							$("#atak").html("");
+							$("#napraw").html("");
+							$("#extra").html("");
+							//dodajemy tury jednostki przeliczone z zegarków
+							$("#dostepne_tury").html('0');
+							if( units[ukey].Specialty != 18 && units[ukey].UnderWater == 1 ){
+								//jeśli okret wynurzony
+								$("#extra").html('<div id="unter"><span id="wynurzony" title="{{ constant("wynurzony_n_txt") }}"></span></div>');
+								$("#unter").css("cursor","default");
+							}
+							else if(units[ukey].Specialty == 18 && units[ukey].UnderWater == 1)
+							{
+								$("#extra").html('<div id="unter"><span id="zanurzony" title="{{ constant("zanurzony_n_txt") }}"></span></div>');
+								$("#unter").css("cursor","default");
+							}else if( units[ukey].Specialty != 17 && units[ukey].FieldArtillery == 1 )
+							{//art złożony, pozycja transportowa
+								$("#extra").html('<div id="artillery"><span id="artillery_r" class="unitOption" title="{{ constant('rozloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#atak").html('');
+							}
+							else if( units[ukey].Specialty == 17 && units[ukey].FieldArtillery == 1 )
+							{//art rozłożny, pozycja bojowa
+								$("#extra").html('<div id="artillery"><span id="artillery_z" class="unitOption" title="{{ constant('zloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#plus-minus-tury").html('');
+								$("#ruch").html('');
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 ){
+									$("#atak").html('');
+								}
+							}
+							else if(units[ukey].Specialty == 1)
+							{
+								
+								$("#atak").html('');
+									if(units[ukey].cityStand==1)
+									{
+										$("#extra").html('<div id="buduj_miasto" class="unitOption" zadanie="1" unitid="'+units[ukey].id+'">{{ constant("ustawienia12") }}</div>'+buildSilo );
+									}
+									else
+									{
+										if(units[ukey].nation == 1){
+											$("#extra").html('{{ constant("bud_off_txt_p") }}'+buildSilo);
+										}else{
+											$("#extra").html('{{ constant("bud_off_txt_n") }}'+buildSilo);
+										}
+									}
+							}else if(units[ukey].Specialty == 19 )
+							// jednostka barka desantowa
+							{
+								$("#atak").html('');
+								$("#extra").html('');
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "showCLUnits/"+units[ukey].id,
+									beforeSend: function() {
+										that.data('inprogress', 1);
+									},
+								}).done(function( data ) {
+									that.data('inprogress', 0);
+									if (data.printError)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.printError,
+											'theme': 'error'
+										});
+										pageObj.blockClick = false;
+									}
+									else
+									{
+										$("#extra").html(data.showData);
+									}
+								}).fail(function(jqXHR, textStatus, errorThrown) {
+									that.data('inprogress', 0);
+									alert(textStatus);
+								});
+							}
+						}else{
+							//dodajemy tury jednostki przeliczone z zegarków
+							$("#dostepne_tury").html(turyJednostki);
+							if( minTD(units[ukey].td,"zasieg_strzalu") == 0){
+								$("#atak").html('');
+							}
+							if(units[ukey].DefensePoints == 100){
+								$("#napraw").html('');
+							}
+							if( units[ukey].Specialty != 17 && units[ukey].FieldArtillery == 1 )
+							{//art złożony, pozycja transportowa
+								$("#extra").html('<div id="artillery"><span id="artillery_r" class="unitOption" title="{{ constant('rozloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#atak").html('');
+							}
+							else if( units[ukey].Specialty == 17 && units[ukey].FieldArtillery == 1 )
+							{//art rozłożny, pozycja bojowa
+								$("#extra").html('<div id="artillery"><span id="artillery_z" class="unitOption" title="{{ constant('zloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#ruch").html('');
+							}
+							else if(units[ukey].Specialty == 1)
+							{
+								$("#atak").html('');
+								$("#sztaby_glob").html('');
+									if(units[ukey].cityStand==1)
+									{
+										$("#extra").html('<div id="buduj_miasto" class="unitOption" zadanie="1" unitid="'+units[ukey].id+'">{{ constant("ustawienia12") }}</div>'+buildSilo);
+									}
+									else
+									{
+										if(units[ukey].nation == 1){
+											$("#extra").html('{{ constant("bud_off_txt_p") }}'+buildSilo);
+										}else{
+											$("#extra").html('{{ constant("bud_off_txt_n") }}'+buildSilo);
+										}
+									}
+
+							}
+							else if( units[ukey].Torpedo == 1 && parseInt(tacticalData[units[ukey]["td"][0]].CorpsId) != 5 )
+							{//samolot z sonarem
+								if( {{ sonar }} == 1 )
+								{
+									sonSam = '<div id="sonar" unitid="'+units[ukey].id+'" title="{{ constant('sonar_on_txt') }}"></div>';
+								}
+								else
+								{
+									sonSam = '<div id="noSonar" title=" {{ constant('temp_map7') }} !"> </div>';
+								}
+								
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_torpeda")].ostrzal_torpeda)>0 ){
+									torpedySam= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }} "></div>';
+								}else{
+									torpedySam= '<div id="noTorpedy" title="{{ constant('temp_map9') }}"></div>';
+								}
+								//samolot torpedowy
+								$("#extra").html(sonSam+' '+torpedySam);
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0){
+									$("#atak").html("");
+								}
+							}
+							else if( parseInt(tacticalData[units[ukey]["td"][0]].CorpsId) == 5 )
+							{
+								if( parseInt(tacticalData[minTD(units[ukey].td,"atak_podwodne")].atak_podwodne)>0 ){
+									if( {{ sonar }} == 1 )
+									{
+										son='<div id="sonar" unitid="' + units[ukey].id + '" title="{{ constant('sonar_on_txt') }}"></div>';
+									}
+									else
+									{
+										son='<div id="noSonar" title="{{ constant('temp_map7') }}!"> </div>';
+									}
+								}else{
+									son='';
+								}
+
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_przeciwlotniczy")].ostrzal_przeciwlotniczy)>0 ){
+									if( units[ukey].UnderWater == 1 )//jeśli okręt podowdny
+									{
+										if( units[ukey].Specialty != 18 ){//jeśli okret wynurzony
+											oplotButton= '<div id="oplot" unitid="'+units[ukey].id+'" title="{{ constant('temp_map10') }}"></div>';
+										}else{
+											oplotButton= '<div id="noOplot" title="{{ constant('temp_map11') }}"></div>';
+										}
+									}else{
+										oplotButton= '<div id="oplot" unitid="'+units[ukey].id+'" title="{{ constant('temp_map10') }}"></div>';	
+									}
+								}else{
+									oplotButton= '<div id="noOplot" title="{{ constant('temp_map12') }}"></div>';
+								}
+
+								if( parseInt(tacticalData[minTD(units[ukey].td,"atak_glebinowe")].atak_glebinowe)>0 ){
+									bombyButton= '<div id="bomby" unitid="'+units[ukey].id+'" title="{{ constant('temp_map13') }}"></div>';
+								}else{
+									bombyButton= '<div id="noBomby" title="{{ constant('temp_map14') }}"></div>';
+								}
+								
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_torpeda")].ostrzal_torpeda)>0 ){
+									if(units[ukey].UnderWater == 1 && units[ukey].Specialty == 18 ){//jeśli okret zanurzony
+										torpedyButton= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }}"></div>';
+									}else if( units[ukey].UnderWater == 1 && units[ukey].Specialty != 18  ){
+										torpedyButton= '<div id="noTorpedy" title="{{ constant('temp_map15') }}"></div>';
+									}else{
+										torpedyButton= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }}"></div>';
+									}
+								}else{
+									torpedyButton= '<div id="noTorpedy" title="{{ constant('temp_map9') }}"></div>';
+								}
+								
+								
+								if(units[ukey].Specialty == 4 )//trałowiec
+								{
+									$("#sztaby_glob").html('');
+									$("#extra").html('<div id="mina_pow" title="{{ constant('minapl_txt2') }}"></div><div id="mina_pod" title="{{ constant('minagl_txt2') }}"></div><div id="deactivate" title="{{ constant('unact_txt') }}"></div>');
+								}
+
+								if( units[ukey].Specialty != 18 && units[ukey].UnderWater == 1 )//okręt podowdny
+								{
+									//jeśli okret wynurzony vv
+									$("#extra").html('<div id="unter" class="unitOption" zadanie="4" unitid="'+units[ukey].id+'"><span id="wynurzony" title="{{ constant('wynurzony_txt') }}"></span></div>');
+								}
+								else if( units[ukey].Specialty == 18 && units[ukey].UnderWater == 1 )
+								{
+									$("#extra").html('<div id="unter" class="unitOption" zadanie="4" unitid="'+units[ukey].id+'"><span id="zanurzony" title="{{ constant('zanurzony_txt') }}"></span></div>');
+								}
+
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 || units[ukey].Specialty == 18){
+									$("#atak").html("");
+								}
+								
+
+								$("#extra").append(bombyButton+' '+son+' '+oplotButton+' '+torpedyButton);
+
+							}else{
+								if(units[ukey].Specialty == 2 ) //saper
+								{
+									$("#sztaby_glob").html('');
+									if( kasa >= 25 )
+									{
+										ppiech='<div id="minepiech_activ" title="{{ constant('mina_ppiech_txt') }}"></div>';
+									}
+									else
+									{
+										ppiech='<div id="minepiech_no_activ" title="{{ constant('mina_ppiech_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 50 )
+									{
+										ppanc='<div id="minepanc_activ" title="{{ constant('mina_ppanc_txt') }}"></div>';
+									}
+									else
+									{
+										ppanc='<div id="minepanc_no_activ" title="{{ constant('mina_ppanc_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 75 )
+									{
+										zasieki='<div id="zasieki" title="{{ constant('zasieki_txt') }}"></div>';
+									}
+									else
+									{
+										zasieki='<div id="zasieki_no" title="{{ constant('zasieki_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 150 )
+									{
+										smocze='<div id="zeby" title="{{ constant('smocze_txt') }}"></div>';
+									}
+									else
+									{
+										smocze='<div id="zeby_no" title="{{ constant('smocze_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 500 )
+									{
+										if( units[ukey].timing1 < ts && units[ukey].timing2 < ts )
+										{
+											most='<div id="most" title="{{ constant('most_txt') }}"></div>';
+										}
+										else
+										{
+											most='<div id="no_most" title="{{ constant('no_tury_most_txt') }}"></div>';
+										}
+									}
+									else
+									{
+										most='<div id="no_most" title="{{ constant('no_most_txt') }}"></div>';
+									}
+
+									if( units[ukey].timing1 < ts || units[ukey].timing2 < ts  )
+									{
+										deactivate='<div id="deactivate" title="{{ constant('unact_txt') }}"></div>';
+									}
+									else
+									{
+										deactivate='<div id="noDeactivate">{{ constant('no_deactivate') }}</div>';
+									}
+									$("#extra").html(ppanc+''+ppiech+''+zasieki+''+smocze+''+most+''+deactivate+'<div id="koszta"><table style="width:100%;text-align:center;"><tr><td title="{{ constant('cena_ppanc') }}">50</td><td title="{{ constant('cena_ppiech') }}">25</td><td title="{{ constant('cena_zasieki') }}">75</td><td title="{{ constant('cena_zapora') }}">150</td><td title="{{ constant('cena_most') }}">500</td></tr></table></div>');
+
+								}
+								else if(units[ukey].Specialty == 3 )//spadochroniarz
+								{
+									if( {{ world.hardGame }} > 1 && ( {{ world.WarWeather }} == 1 || {{ world.WarWeather }} == 2 || {{ world.WarWeather }} == 8 )  )//z powodu złej pogody skoczek nie może skoczyć, hardGame większe niż kadet
+									{
+										$("#extra").html(' {{ constant("no_jump_txt") }}');
+									}
+									else
+									{
+										$("#extra").html('<div id="desant" unitid="'+units[ukey].id+'" title="{{ constant('desant_txt') }}"></div>');
+									}
+								}
+								else if(units[ukey].Specialty == 19 )//spadochroniarz, który wykonał już skok
+								{
+									$("#extra").html('{{ constant("jump_off_txt") }}');
+								}
+								else if(units[ukey].Specialty == 4 )//trałowiec
+								{
+									$("#sztaby_glob").html('');
+									$("#extra").html('<div id="mina_pow" title="{{ constant('minapl_txt2') }}"></div><div id="mina_pod" title="{{ constant('minagl_txt2') }}"></div><div id="deactivate" title="{{ constant('unact_txt') }}"></div>');
+								}
+								else
+								{
+									$("#extra").html('');
+								}
+								if( units[ukey].Specialty == 6 )//jendostka stacjonarna, bez możliwości ruchu
+								{
+									$("#ruch").html('');
+									$("#plus-minus-tury").html('');
+									$("#sztaby_glob").html('');
+									if( units[ukey].DefensePoints < 200 && units[ukey].DefensePoints >= 100 )
+									{
+										$("#napraw").html('<div class="naprawPancerz" >{{ constant("rozbuduj_pancerz_txt") }}</div><div id="przycisk_napraw" class="unitOption" title="{{ constant("rozbuduj_pancerz_txt") }}" zadanie="3" unitid="'+units[ukey].id+'"></div>');
+									}
+									else
+									{
+										$("#napraw").html('<div class="naprawPancerz" >{{ constant("napraw_pancerz_txt") }}</div><div id="przycisk_napraw" class="unitOption" title="{{ constant("napraw_pancerz_txt") }}" zadanie="3" unitid="'+units[ukey].id+'"></div>');
+									}
+								}
+								if( units[ukey].Specialty == 7 )//sztab polowy
+								{
+									$("#nazwa").html("<strong>"+units[ukey].belongHQ.nameStuff+"</strong>");
+									$("#sztaby_glob").html('');
+									$("#atak").html("");
+									$("#tabela").html('<table class="sztab"><tr class="naglowek_panel"><td class="title">{{ constant("korpus_txt") }}</td><td title="{{ constant("artyleria_txt") }}" ></td><td title="{{ constant("piechota_txt") }}"></td><td title="{{ constant("pancerne_txt") }}"></td><td title="{{ constant("przeciwlotnicze_txt") }}"></td><td title="{{ constant("lotnictwo_txt") }}"></td><td title="{{ constant("flota_txt") }}"></td></tr><tr><td class="title">{{ constant("bonus_txt") }}</td><td>'+units[ukey].belongHQ.artillery+'</td><td>'+units[ukey].belongHQ.infantry+'</td><td>'+units[ukey].belongHQ.tanks+'</td><td>'+units[ukey].belongHQ.antiAircraft+'</td><td>'+units[ukey].belongHQ.aircraft+'</td><td>'+units[ukey].belongHQ.waterArtillery+'</td></tr></table>');
+									$("#extra").html('Twój sztab posiada już '+units[ukey].belongHQ.stuffPoints+' PDS. '+units[ukey].belongHQ.stuffUp);
+								}
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 )
+								{
+									$("#atak").html('');
+								}
+							}
+							if( units[ukey].Specialty != 7 && units[ukey].Specialty != 6 && units[ukey].Specialty != 4 && units[ukey].Specialty != 2 && units[ukey].Specialty != 1 && units[ukey].td.length < 3 && parseInt(tacticalData[units[ukey]["td"][0]].funkcje) != 11 )
+							{
+								$("#extra").append('<div class="connectUnit" unitid="'+units[ukey].id+'">{{ constant("temp_map17") }}</div>');
+							}
+							if( units[ukey].Specialty != 19 && units[ukey].unitType != 4 && units[ukey].unitType != 5 && units[ukey].unitType != 7 && units[ukey].Specialty != 5 && units[ukey].Specialty != 6 && units[ukey].Specialty != 17 && units[ukey].td.length == 1 )
+							{
+								$("#extra").append('<div class="loadLandingCraft" unitid="'+units[ukey].id+'">{{ constant("temp_map16") }}</div>');
+							}
+							if(units[ukey].Specialty == 19 )
+							// jednostka barka desantowa
+							{
+								$("#atak").html('');
+								$("#extra").html('');
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "showCLUnits/"+units[ukey].id,
+									beforeSend: function() {
+										that.data('inprogress', 1);
+									},
+								}).done(function( data ) {
+									that.data('inprogress', 0);
+									if (data.printError)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.printError,
+											'theme': 'error'
+										});
+										pageObj.blockClick = false;
+									}
+									else
+									{
+										$("#extra").html(data.showData);
+									}
+								}).fail(function(jqXHR, textStatus, errorThrown) {
+									that.data('inprogress', 0);
+									alert(textStatus);
+								});
+							}
+						}
+					}else{
+						if( units[ukey].unitTurn <= 0 ){
+							$("#plus-minus-tury").html("");
+							$("#ruch").html("");
+							$("#atak").html("");
+							$("#napraw").html("");
+							$("#extra").html("");
+							if( units[ukey].Specialty != 18 && units[ukey].UnderWater == 1 ){
+								//jeśli okret wynurzony
+								$("#extra").html('<div id="unter"><span id="wynurzony" title="{{ constant("wynurzony_n_txt") }}"></span></div>');
+								$("#unter").css("cursor","default");
+							}
+							else if(units[ukey].Specialty == 18 && units[ukey].UnderWater == 1)
+							{
+								$("#extra").html('<div id="unter"><span id="zanurzony" title="{{ constant("zanurzony_n_txt") }}"></span></div>');
+								$("#unter").css("cursor","default");
+							}
+							else if(units[ukey].Specialty == 1)
+							{
+								$("#atak").html('');
+									if(units[ukey].cityStand==1)
+									{
+										$("#extra").html('<div id="buduj_miasto" class="unitOption" zadanie="1" unitid="'+units[ukey].id+'">{{ constant("ustawienia12") }}</div>'+buildSilo);
+									}
+									else
+									{
+										if(units[ukey].nation == 1){
+											$("#extra").html('{{ constant("bud_off_txt_p") }}'+buildSilo);
+										}else{
+											$("#extra").html('{{ constant("bud_off_txt_n") }}'+buildSilo);
+										}
+									}
+							}
+							if(units[ukey].Specialty == 19 )
+							// jednostka barka desantowa
+							{
+								$("#atak").html('');
+								$("#extra").html('');
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "showCLUnits/"+units[ukey].id,
+									beforeSend: function() {
+										that.data('inprogress', 1);
+									},
+								}).done(function( data ) {
+									that.data('inprogress', 0);
+									if (data.printError)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.printError,
+											'theme': 'error'
+										});
+										pageObj.blockClick = false;
+									}
+									else
+									{
+										$("#extra").html(data.showData);
+									}
+								}).fail(function(jqXHR, textStatus, errorThrown) {
+									that.data('inprogress', 0);
+									alert(textStatus);
+								});
+							}		
+						}else{
+							if( minTD(units[ukey].td,"zasieg_strzalu") == 0){
+								$("#atak").html('');
+							}
+							if(units[ukey].DefensePoints == 100){
+								$("#napraw").html('');
+							}
+							if( units[ukey].Specialty != 17 && units[ukey].FieldArtillery == 1 )
+							{//art złożony, pozycja transportowa
+								$("#extra").html('<div id="artillery"><span id="artillery_r" class="unitOption" title="{{ constant('rozloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#atak").html('');
+							}
+							else if( units[ukey].Specialty == 17 && units[ukey].FieldArtillery == 1 )
+							{//art rozłożny, pozycja bojowa
+								$("#extra").html('<div id="artillery"><span id="artillery_z" class="unitOption" title="{{ constant('zloz_strzal_txt') }}" zadanie="7" unitid="'+units[ukey].id+'"></span></div>');
+								$("#plus-minus-tury").html('');
+								$("#ruch").html('');
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 ){
+									$("#atak").html('');
+								}
+							}
+							else if(units[ukey].Specialty == 1)
+							{
+								$("#atak").html('');
+								$("#sztaby_glob").html('');
+									if(units[ukey].cityStand==1)
+									{
+										$("#extra").html('<div id="buduj_miasto" class="unitOption" zadanie="1" unitid="'+units[ukey].id+'">{{ constant("ustawienia12") }}</div>'+buildSilo);
+									}
+									else
+									{
+										if(units[ukey].nation == 1){
+											$("#extra").html('{{ constant("bud_off_txt_p") }}'+buildSilo);
+										}else{
+											$("#extra").html('{{ constant("bud_off_txt_n") }}'+buildSilo);
+										}
+									}
+
+							}
+							else if( units[ukey].Torpedo == 1 && parseInt(tacticalData[units[ukey]["td"][0]].CorpsId) != 5 )
+							{//samolot z sonarem
+								if( {{ sonar }} == 1 )
+								{
+									sonSam = '<div id="sonar" unitid="'+units[ukey].id+'" title="{{ constant('sonar_on_txt') }}"></div>';
+								}
+								else
+								{
+									sonSam = '<div id="noSonar" title="{{ constant('temp_map7') }}!"> </div>';
+								}
+								
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_torpeda")].ostrzal_torpeda)>0 ){
+									torpedySam= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }}"></div>';
+								}else{
+									torpedySam= '<div id="noTorpedy" title="{{ constant('temp_map9') }}"></div>';
+								}
+								//samolot torpedowy
+								$("#extra").html(sonSam+' '+torpedySam);
+								
+								
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0){
+									$("#atak").html("");
+								}
+							}else if( parseInt(tacticalData[units[ukey]["td"][0]].CorpsId) == 5 )
+							{// flota
+								if( parseInt(tacticalData[minTD(units[ukey].td,"atak_podwodne")].atak_podwodne)>0 ){
+									if( {{ sonar }} == 1 ){
+										son='<div id="sonar" unitid="' + units[ukey].id + '" title="{{ constant('sonar_on_txt') }}"></div>';
+									}else{
+										son='<div id="noSonar" title="{{ constant('temp_map7') }}!"> </div>';
+									}
+								}else{
+									son='';
+								}
+
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_przeciwlotniczy")].ostrzal_przeciwlotniczy)>0 ){
+									if( units[ukey].UnderWater == 1 )//jeśli okręt podowdny
+									{
+										if( units[ukey].Specialty != 18 ){//jeśli okret wynurzony
+											oplotButton= '<div id="oplot" unitid="'+units[ukey].id+'" title="{{ constant('temp_map10') }}"></div>';
+										}else{
+											oplotButton= '<div id="noOplot" title="{{ constant('temp_map11') }}"></div>';
+										}
+									}else{
+										oplotButton= '<div id="oplot" unitid="'+units[ukey].id+'" title="{{ constant('temp_map10') }}"></div>';	
+									}
+								}else{
+									oplotButton= '<div id="noOplot" title="brak ataku przeciwlotniczego"></div>';
+								}	
+								if( parseInt(tacticalData[minTD(units[ukey].td,"atak_glebinowe")].atak_glebinowe)>0 ){
+									bombyButton= '<div id="bomby" unitid="'+units[ukey].id+'" title="{{ constant('temp_map13') }}"></div>';
+								}else{
+									bombyButton= '<div id="noBomby" title="{{ constant('temp_map13') }}"></div>';
+								}
+								
+								if( parseInt(tacticalData[minTD(units[ukey].td,"ostrzal_torpeda")].ostrzal_torpeda)>0 ){
+									if(units[ukey].UnderWater == 1 && units[ukey].Specialty == 18 ){//jeśli okret zanurzony
+										torpedyButton= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }}"></div>';
+									}else if( units[ukey].UnderWater == 1 && units[ukey].Specialty != 18  ){
+										torpedyButton= '<div id="noTorpedy" title="{{ constant('temp_map15') }}"></div>';
+									}else{
+										torpedyButton= '<div id="torpedy" unitid="'+units[ukey].id+'" title="{{ constant('temp_map8') }}"></div>';
+									}
+								}else{
+									torpedyButton= '<div id="noTorpedy" title="{{ constant('temp_map9') }}"></div>';
+								}
+								
+								
+								if(units[ukey].Specialty == 4 )//trałowiec
+								{
+									$("#sztaby_glob").html('');
+									$("#extra").html('<div id="mina_pow" title="{{ constant('minapl_txt2') }}"></div><div id="mina_pod" title="{{ constant('minagl_txt2') }}"></div><div id="deactivate" title="{{ constant('unact_txt') }}"></div>');
+								}
+
+								if( units[ukey].Specialty != 18 && units[ukey].UnderWater == 1 )//okręt podowdny
+								{
+									//jeśli okret wynurzony vv
+									$("#extra").html('<div id="unter" class="unitOption" zadanie="4" unitid="'+units[ukey].id+'"><span id="wynurzony" title="{{ constant('wynurzony_txt') }}"></span></div>');
+								}
+								else if( units[ukey].Specialty == 18 && units[ukey].UnderWater == 1 ){
+									$("#extra").html('<div id="unter" class="unitOption" zadanie="4" unitid="'+units[ukey].id+'"><span id="zanurzony" title="{{ constant('zanurzony_txt') }}"></span></div>');
+								}
+
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 || units[ukey].Specialty == 18){
+									$("#atak").html("");
+								}
+
+
+								$("#extra").append( bombyButton+' '+son+' '+oplotButton+' '+torpedyButton );
+							}else{
+								if(units[ukey].Specialty == 2 ) //saper
+								{
+									$("#sztaby_glob").html('');
+									if( kasa >= 25 )
+									{
+										ppiech='<div id="minepiech_activ" title="{{ constant('mina_ppiech_txt') }}"></div>';
+									}
+									else
+									{
+										ppiech='<div id="minepiech_no_activ" title="{{ constant('mina_ppiech_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 50 )
+									{
+										ppanc='<div id="minepanc_activ" title="{{ constant('mina_ppanc_txt') }}"></div>';
+									}
+									else
+									{
+										ppanc='<div id="minepanc_no_activ" title="{{ constant('mina_ppanc_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 75 )
+									{
+										zasieki='<div id="zasieki" title="{{ constant('zasieki_txt') }}"></div>';
+									}
+									else
+									{
+										zasieki='<div id="zasieki_no" title="{{ constant('zasieki_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 150 )
+									{
+										smocze='<div id="zeby" title="{{ constant('smocze_txt') }}"></div>';
+									}
+									else
+									{
+										smocze='<div id="zeby_no" title="{{ constant('smocze_no_txt') }}"></div>';
+									}
+
+									if( kasa >= 500 )
+									{
+										if( units[ukey].unitTurn >= 2 )
+										{
+											most='<div id="most" title="{{ constant('most_txt') }}"></div>';
+										}
+										else
+										{
+											most='<div id="no_most" title="{{ constant('no_tury_most_txt') }}"></div>';
+										}
+									}
+									else
+									{
+										most='<div id="no_most" title="{{ constant('no_most_txt') }}"></div>';
+									}
+
+									if( units[ukey].unitTurn >= 1 )
+									{
+										deactivate='<div id="deactivate" title="{{ constant('unact_txt') }}"></div>';
+									}
+									else
+									{
+										deactivate='<div id="noDeactivate">{{ constant('no_deactivate') }}</div>';
+									}
+									$("#extra").html(ppanc+''+ppiech+''+zasieki+''+smocze+''+most+''+deactivate+'<div id="koszta"><table style="width:100%;text-align:center;"><tr><td title="{{ constant('cena_ppanc') }}">50</td><td title="{{ constant('cena_ppiech') }}">25</td><td title="{{ constant('cena_zasieki') }}">75</td><td title="{{ constant('cena_zapora') }}">150</td><td title="{{ constant('cena_most') }}">500</td></tr></table></div>');
+
+								}
+								else if(units[ukey].Specialty == 3 )//spadochroniarz
+								{
+									if( {{ world.hardGame }} > 1 && ( {{ world.WarWeather }} == 1 || {{ world.WarWeather }} == 2 || {{ world.WarWeather }} == 8 )  )//z powodu złej pogody skoczek nie może skoczyć, hardGame większe niż kadet
+									{
+										$("#extra").html(' {{ constant("no_jump_txt") }}');
+									}
+									else
+									{
+										$("#extra").html('<div id="desant" unitid="'+units[ukey].id+'" title="{{ constant('desant_txt') }}"></div>');
+									}
+								}
+								else if(units[ukey].Specialty == 19 )//spadochroniarz, który wykonał już skok
+								{
+									$("#extra").html('{{ constant("jump_off_txt") }}');
+								}
+								else if(units[ukey].Specialty == 4 )//trałowiec
+								{
+									$("#sztaby_glob").html('');
+									$("#extra").html('<div id="mina_pow" title="{{ constant('minapl_txt2') }}"></div><div id="mina_pod" title="{{ constant('minagl_txt2') }}"></div><div id="deactivate" title="{{ constant('unact_txt') }}"></div>');
+								}
+								else
+								{
+									$("#extra").html('');
+								}
+								if( units[ukey].Specialty == 6 )//jendostka stacjonarna, bez możliwości ruchu
+								{
+									$("#ruch").html('');
+									$("#plus-minus-tury").html('');
+									$("#sztaby_glob").html('');
+									if( units[ukey].DefensePoints < 200 && units[ukey].DefensePoints >= 100 )
+									{
+										$("#napraw").html('<div class="naprawPancerz" >{{ constant("rozbuduj_pancerz_txt") }}</div><div id="przycisk_napraw" class="unitOption" title="{{ constant("rozbuduj_pancerz_txt") }}" zadanie="3" unitid="'+units[ukey].id+'"></div>');
+									}
+									else
+									{
+										$("#napraw").html('<div class="naprawPancerz" >{{ constant("napraw_pancerz_txt") }}</div><div id="przycisk_napraw" class="unitOption" title="{{ constant("napraw_pancerz_txt") }}" zadanie="3" unitid="'+units[ukey].id+'"></div>');
+									}
+								}
+								if( units[ukey].Specialty == 7 )//sztab polowy
+								{
+									$("#nazwa").html("<strong>"+units[ukey].belongHQ.nameStuff+"</strong>");
+									$("#sztaby_glob").html('');
+									$("#atak").html("");
+									$("#tabela").html('<table class="sztab"><tr class="naglowek_panel"><td class="title">{{ constant("korpus_txt") }}</td><td title="{{ constant("artyleria_txt") }}" ></td><td title="{{ constant("piechota_txt") }}"></td><td title="{{ constant("pancerne_txt") }}"></td><td title="{{ constant("przeciwlotnicze_txt") }}"></td><td title="{{ constant("lotnictwo_txt") }}"></td><td title="{{ constant("flota_txt") }}"></td></tr><tr><td class="title">{{ constant("bonus_txt") }}</td><td>'+units[ukey].belongHQ.artillery+'</td><td>'+units[ukey].belongHQ.infantry+'</td><td>'+units[ukey].belongHQ.tanks+'</td><td>'+units[ukey].belongHQ.antiAircraft+'</td><td>'+units[ukey].belongHQ.aircraft+'</td><td>'+units[ukey].belongHQ.waterArtillery+'</td></tr></table>');
+									$("#extra").html('Twój sztab posiada już '+units[ukey].belongHQ.stuffPoints+' PDS. '+units[ukey].belongHQ.stuffUp);
+								}
+								if( minTD(units[ukey].td,"zasieg_strzalu") == 0 )
+								{
+									$("#atak").html('');
+								}
+							}
+							if( units[ukey].Specialty != 7 && units[ukey].Specialty != 6 && units[ukey].Specialty != 4 && units[ukey].Specialty != 2 && units[ukey].Specialty != 1 && units[ukey].td.length < 3 && parseInt(tacticalData[units[ukey]["td"][0]].funkcje) != 11 )
+							{
+								$("#extra").append('<div class="connectUnit" unitid="'+units[ukey].id+'">{{ constant("temp_map17") }}</div>');
+							}
+							if( units[ukey].Specialty != 19 && units[ukey].unitType != 4 && units[ukey].unitType != 5 && units[ukey].unitType != 7 && units[ukey].Specialty != 5 && units[ukey].Specialty != 6 && units[ukey].Specialty != 17 && units[ukey].td.length == 1 )
+							{
+								$("#extra").append('<div class="loadLandingCraft" unitid="'+units[ukey].id+'">{{ constant("temp_map16") }}</div>');
+							}
+							if(units[ukey].Specialty == 19 )
+							// jednostka barka desantowa
+							{
+								$("#atak").html('');
+								$("#extra").html('');
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "showCLUnits/"+units[ukey].id,
+									beforeSend: function() {
+										that.data('inprogress', 1);
+									},
+								}).done(function( data ) {
+									that.data('inprogress', 0);
+									if (data.printError)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.printError,
+											'theme': 'error'
+										});
+										pageObj.blockClick = false;
+									}
+									else
+									{
+										$("#extra").html(data.showData);
+									}
+								}).fail(function(jqXHR, textStatus, errorThrown) {
+									that.data('inprogress', 0);
+									alert(textStatus);
+								});
+							}
+						}
+					}
+
+					if( playerObj.tutStage == 5 ){
+						$.ajax({
+							type: "POST",
+							dataType: "json",
+							url: "upT",
+							data: {'id': 6},
+							beforeSend: function() {
+								that.data('inprogress', 1);
+							},
+						}).done(function (data) {
+							that.data('inprogress', 0);
+							if (data.error) {
+								alert(data.error);
+							}else{
+								showActiveWindow( data.title, data.bodySamouczek, '650px',data.heightWindow,101);
+								if( data.goldNagroda > 0 ){
+									// pokazujemy okienko z nagrodą
+									$('#upGold').css('display', 'block');
+									$('#upGold').html(data.goldNagrodaTXT);
+								}
+								playerObj.tutStage = data.tutStage;
+							}
+						}).fail(function(jqXHR, textStatus, errorThrown) {
+							that.data('inprogress', 0);
+							alert(textStatus);
+						});
+					}
+				}
+				else
+				{
+					$('.unit_panel').css('background','url(./app/templates/assets/images/units_bg/panel_miasto.png)');
+					$('.unit_panel').css('width','250px');
+					$('.unit_panel').css('height','150px');
+					$('#top-panel').css('width','244px');
+
+                    if( playerObj.nation == units[ukey].nation )//jeśli sojusznik
+					{
+							if(units[ukey].Specialty == 21 )
+							// silos
+							{
+								$("#atak").html('');
+								$(".tytul").html('SILOS');
+								$("#ruch").html('');
+								$("#plus-minus-tury").html('');
+								$("#extra").html('');
+								$.ajax({
+									type     : "POST",
+									dataType : "json",
+									url      : "showDataSilo/"+units[ukey].id,
+									beforeSend: function() {
+										that.data('inprogress', 1);
+									},
+								}).done(function( data ) {
+									that.data('inprogress', 0);
+									if (data.printError)
+									{
+										$.fn.jAlert({
+											'title': 'Pojawił się błąd',
+											'message': data.printError,
+											'theme': 'error'
+										});
+										pageObj.blockClick = false;
+									}
+									else
+									{
+										$("#extra").html(data.showData);
+										if( data.time > 0 ){
+											var ts = Math.round(new Date().getTime() / 1000| 0);
+											var timeToEnd = data.time - ts;
+											loadTimer( timeToEnd, 'timerSilo', data.num, 8 );
+										}
+									}
+								}).fail(function(jqXHR, textStatus, errorThrown) {
+									that.data('inprogress', 0);
+									alert(textStatus);
+								});
+							}else{
+								$(".unit_panel").html('<p class="unitAlly"><strong>'+units[ukey].nazwa+'</strong> {{ constant("sztaby_gracza") }} '+units[ukey].nickName+'<br> {{ constant("sojusznik_txt") }} </p><br><div class="messageBox unitM" nickname="'+units[ukey].nickName+'"></div><div id="close_panel"></div>');
+							}
+						
+					}else//to wróg
+					{
+						$(".unit_panel").html('<p class="unitEnemy"><strong>'+units[ukey].nazwa+'</strong> {{ constant("sztaby_gracza") }} '+units[ukey].nickName+'<br> {{ constant("temp_map18") }} </p><br><div class="messageBox unitM" nickname="'+units[ukey].nickName+'"></div><div id="close_panel"></div>');
+					}
+				}
+			}
+		}
+    });
+	$('div.map-assets').on("click touchstart", "div.connectUnit", function () {
+        // Usuwam inne zaznaczenia
+        $('.tile_Saper').each(function(index) {
+            $( this ).remove();
+        });
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            data: {'x': x, 'y': y, 'unitID': unitsID,'code':minTD(units[hex.key(x, y)].td, "ruch"),'zadanie':5 },
+            url: "editUnitOption",
+            success: function (data) {
+                if (data.error) {
+                    alert(data.error);
+                }
+            }
+        });
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	
+	
+	$('div.map-assets').on("click touchstart", "div.loadLandingCraft", function () {
+        // Usuwam inne zaznaczenia
+        $('.tile_Saper').each(function(index) {
+            $( this ).remove();
+        });
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        $.ajax({
+            type: "POST",
+            dataType: "json",
+            data: {'x': x, 'y': y, 'unitID': unitsID,'code': 1,'zadanie':9 },
+            url: "editUnitOption",
+            success: function (data) {
+                if (data.error) {
+                    alert(data.error);
+                }
+            }
+        });
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	
+	$('body').on("click touchstart", "#buildSilo", function () {
+        var that = $(this);
+		var uid = that.attr('unitid');
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		$.ajax({
+			type     : "POST",
+			dataType : "json",
+			data: {'uid': uid },
+            url: "buildSilo",
+			beforeSend: function() {
+				that.data('inprogress', 1);
+			},
+		}).done(function( data ) {
+			that.data('inprogress', 0);
+			if (data.error)
+			{
+				$.fn.jAlert({
+					'title': '{{ constant("ingame9") }}',
+					'message': data.error,
+					'theme': 'error'
+				});
+			}
+			else
+			{
+				alert(data.info);
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+    });
+	
+	
+    $('div.map-assets').on("click touchstart", "#sonar", function () {
+        // Usuwam inne zaznaczenia
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+		$.ajax({
+            type: "POST",
+            dataType: "json",
+            data: {'x': x, 'y': y, 'unitID': unitsID,'code':minTD(units[hex.key(x, y)].td, "zasieg_strzalu"),'zadanie':8 },
+            url: "editUnitOption",
+            success: function (data) {
+                if (data.error) {
+                    alert(data.error);
+                }
+            }
+        });
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_attack', unitsID, 1 , 0 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+
+
+
+
+
+
+
+
+
+    $('body').on("click touchstart", "table.tabela_losowanie .min", function () {
+		$('#cityPlane').css('display','none');
+		var unitsID = $(this).attr('id');
+		var tdID = $(this).attr('td');
+        var res = tdID.split(",");
+		showPoints( parseInt($(this).attr('x')), parseInt($(this).attr('y')),  minTD(res,"ruch") , 'desant_unit', unitsID, 1, 0 );
+       // Zamukam otwarte panele
+       closePanels();
+	   
+    });
+   
+   $('div.map-assets').on("click touchstart", ".reloadUnit", function () {
+		showPoints( parseInt($(this).attr('clx')), parseInt($(this).attr('cly')),  $(this).attr('tdi'), 'desant_unit', $(this).attr('num'), 1, 0 );
+       // Zamukam otwarte panele
+       closePanels();
+   });
+   
+   
+   $('body').on('click touchstart', '#plus', function () {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		var ilosc_tur = parseInt($("#cyfra").html());
+		var ilosc_max = parseInt($("#dostepne_tury").html());
+		max_tury = ilosc_tur + 1;
+		if( ilosc_tur < max_tury && ilosc_max > 1 )
+		{
+			$("#cyfra").html(ilosc_tur+1);
+			$("#dostepne_tury").html(ilosc_max-1);
+		}
+	});
+	$('body').on('click touchstart', '#minus', function () {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		var ilosc_tur = parseInt($("#cyfra").html());
+		var ilosc_max = parseInt($("#dostepne_tury").html());
+		if( ilosc_tur == 1 )
+		{
+			return 0;
+		}
+		else
+		{
+			$("#cyfra").html(ilosc_tur-1);
+			$("#dostepne_tury").html(ilosc_max+1);
+		}
+	});
+	
+	$('body').on('click touchstart', '#plusSurka', function () {
+		var that = $(this);
+		var varID = that.attr('var');
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		$.ajax({
+            type: "POST",
+            dataType: "json",
+            data: {'edit': 1, 'uid': that.attr('uid'), 'varID': varID},
+            url: "editSur",
+		}).done(function (data) {
+			that.data('inprogress', 0);
+			if (data.error) {
+				alert(data.error);
+			}else{
+				$("#extra").html(data.showData);
+				$("#rawMaterials").html(data.editRawMaterials);
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+	});
+	
+	$('body').on('click touchstart', '#minusSurka', function () {
+		var that = $(this);
+		var varID = that.attr('var');
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		$.ajax({
+            type: "POST",
+            dataType: "json",
+            data: {'edit': 2, 'uid': that.attr('uid'), 'varID': varID },
+            url: "editSur",
+        }).done(function (data) {
+			that.data('inprogress', 0);
+			if (data.error) {
+				alert(data.error);
+			}else{
+				$("#extra").html(data.showData);
+				$("#rawMaterials").html(data.editRawMaterials);
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+	});
+	
+	
+	
+	
+    $('body').on('click touchstart', '.goToCoords', function() {
+        grid.centerOnCoords($(this).attr('x'), $(this).attr('y'));
+    });
+	
+	var touchtimeM = 0;
+    $('div.map-assets').on("click touchstart", "div.tile_moveto", function () {
+        if (touchtimeM == 0) {
+        // set first click
+        touchtimeM = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeM) < 500) {
+            // double click occurred
+            //alert("double clicked");
+				touchtimeM = 0;
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var goToDiv = $(this);
+				if (typeof units[goToDiv.attr('hex')] === 'undefined') return;
+				var gotoCoords = goToDiv.attr('id').split('_');
+				var goToX = gotoCoords[1];
+				var goToY = gotoCoords[2];
+				//alert("klik, constans="+{{ constant("SUBDIR") }});
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					url: "{{ constant("SUBDIR") }}/przesun-jednostke",
+					data: {'moveToX': goToX, 'moveToY': goToY, 'unitID': units[goToDiv.attr('hex')].id, 'tury': parseInt(goToDiv.attr('tury'))},
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					},
+					success: function (data) {
+						that.data('inprogress', 0);
+						if (data.printError) {
+							$.fn.jAlert({
+								'title': 'Pojawił się błąd',
+								'message': data.printError,
+								'theme': 'error'
+							});
+						}
+					}
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeM = new Date().getTime();
+			}
+		}
+    });
+    
+	var touchtimeS = 0;
+	$('div.map-assets').on("click touchstart", "div.settle_city", function () {
+        if (touchtimeS == 0) {
+        // set first click
+        touchtimeS = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeS) < 500) {
+            // double click occurred
+            //alert("double clicked");
+				touchtimeS = 0;
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var goToDiv = $(this);
+				var gotoCoords = goToDiv.attr('id').split('_');
+				var goToX = gotoCoords[1];
+				var goToY = gotoCoords[2];
+
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					url: "{{ constant("SUBDIR") }}/ustaw-miasto",
+					data: {'moveToX': goToX, 'moveToY': goToY},
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					},
+					success: function (data) {
+						that.data('inprogress', 0);
+						if (data.printError) {
+							$.fn.jAlert({
+								'title': 'Pojawił się błąd',
+								'message': data.printError,
+								'theme': 'error'
+							});
+						}
+						else {
+							$('.settle_city').each(function (index) {
+								$(this).remove();
+							});
+						}
+					}
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeS = new Date().getTime();
+			}
+		}
+    });
+    $('div.map-assets').on("click touchstart", "div.ruch", function () {
+
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function (index) {
+            $(this).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+
+        showPoints(x, y, minTD(units[hex.key(x, y)].td, "ruch"), 'tile_moveto', unitsID, parseInt($("#cyfra").html()), 0 );
+        // Zamukam otwarte panele
+        closePanels();
+
+    });
+	$('div.map-assets').on("click touchstart", "div.atak", function () {
+		
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_attack', unitsID, 1 , 0 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	//
+	<!--
+	//........................................ kliknięcie w div z wystrzałem teorpedy
+	-->
+	
+	
+	$('div.map-assets').on("click touchstart", "#torpedy", function () {
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"ostrzal_torpeda"), 'tile_torpeda', unitsID, 1 , 0 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	
+	$('div.map-assets').on("click touchstart", "div#minepanc_activ", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 3 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+	$('div.map-assets').on("click touchstart", "div#minepiech_activ", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 4 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	$('div.map-assets').on("click touchstart", "div#zasieki", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 2 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+	$('div.map-assets').on("click touchstart", "div#mina_pow", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 6 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+	$('div.map-assets').on("click touchstart", "div#mina_pod", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 7 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+
+	$('div.map-assets').on("click touchstart", "div#zeby", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 1 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	$('div.map-assets').on("click touchstart", "div#most", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 5 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	$('div.map-assets').on("click touchstart", "div#deactivate", function () {
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"zasieg_strzalu"), 'tile_Saper', unitsID, 1, 8 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+
+    $('div.map-assets').on("click touchstart", "div#desant", function () {
+			showWindow('desant','{{ constant("temp_map24") }} ', 300, 300, 101);
+			$('.default-tile').each(function(index) {
+				$( this ).remove();
+			});
+			var unitData = $(this).parents('.units');
+			var unitCoords = unitData.attr('id');
+			var unitsID = unitData.attr('num');
+
+			var x = parseInt(unitCoords.split('_')[1]);
+			var y = parseInt(unitCoords.split('_')[2]);
+			showPoints( x, y,  10, 'tile_desant', unitsID, 1, 0 );
+			// Zamukam otwarte panele
+			closePanels();
+			hideWindow();
+    });
+	
+	var touchtimeTS = 0;
+	$('div.map-assets').on("click touchstart", "div.tile_Saper", function () {
+		if (touchtimeTS == 0) {
+        // set first click
+        touchtimeTS = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeTS) < 500) {
+            // double click occurred
+				touchtimeTS = 0;	
+            //alert("double clicked");
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var goToDiv = $(this);
+				if ( goToDiv.attr('num') === 'undefined') return;
+				if ( goToDiv.attr('code') === 'undefined') return;
+				var gotoCoords = goToDiv.attr('id').split('_');
+				var goToX = gotoCoords[1];
+				var goToY = gotoCoords[2];
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					data: {'x': goToX, 'y': goToY, 'unitID': goToDiv.attr('num'),'code':goToDiv.attr('code'),'zadanie':6 },
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					},
+					url: "editUnitOption",
+					success: function (data) {
+						that.data('inprogress', 0);
+						if (data.error) {
+							alert(data.error);
+						}
+					}
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeTS = new Date().getTime();
+			}
+		}	
+    });
+    $('div.map-assets').on("click touchstart", "div.tile_active", function (e) {
+        if(e.ctrlKey)
+        {
+            var chat = $('#msg_world');
+            chat.val(chat.val()+' ['+$(this).attr('coords')+'] ');
+        }
+    });
+	
+	
+	
+	
+	var touchtimeTA = 0;
+	$('div.map-assets').on("click touchstart", "div.tile_attack", function () {
+		if (touchtimeTA == 0) {
+        // set first click
+        touchtimeTA = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeTA) < 500) {
+            // double click occurred
+				touchtimeTA = 0;	
+				//alert("double clicked");	
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var goToDiv = $(this);
+				if ( goToDiv.attr('num') === 'undefined') return;
+				var gotoCoords = goToDiv.attr('id').split('_');
+				var goToX = gotoCoords[1];
+				var goToY = gotoCoords[2];
+				$('.tile_attack').each(function(index) {
+					$( this ).remove();
+				});
+				$('.un').each(function(index) {
+					var goToDiv = $(this);
+					if ( goToDiv.attr('num') === 'undefined') return;
+					var gotoCoords = goToDiv.attr('id').split('_');
+					var goToX = gotoCoords[1];
+					var goToY = gotoCoords[2];
+					delete units[hex.key(goToX, goToY)];
+					$( this ).remove();
+				});
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					data: {'x': goToX, 'y': goToY, 'unitID': goToDiv.attr('num'),'attack':goToDiv.attr('code')},
+					url: "battle",
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					}
+				}).done(function( data ) {
+					that.data('inprogress', 0);
+					if (data.error) {
+						alert(data.error);
+					}
+					else
+					{
+						if( playerObj.reports == 0 || playerObj.reports == 1 )
+						{
+							showWindow(data.temat,data.bitwaT, 540, 610, 101);
+						}
+					}
+				}).fail(function(jqXHR, textStatus, errorThrown) {
+					that.data('inprogress', 0);
+					alert(textStatus);
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeTA = new Date().getTime();
+			}
+		}		
+    });
+
+    var touchtimeTD = 0;
+	$('div.map-assets').on("click touchstart", "div.desant_unit", function () {
+        if (touchtimeTD == 0) {
+        // set first click
+        touchtimeTD = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeTD) < 500) {
+            // double click occurred
+				touchtimeTD = 0;	
+				//alert("double clicked");	
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var unitsID = $(this).attr('num');
+				var gotoCoords = $(this).attr('id').split('_');
+				var x = parseInt(gotoCoords[1]);
+				var y = parseInt(gotoCoords[2]);
+				$('.default-tile').each(function (index) {
+					$(this).remove();
+				});
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					url: "ustaw-jednostke",
+					data: {'moveToX': x, 'moveToY': y, 'unitID': unitsID},
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					}
+				}).done(function( data ) {
+					that.data('inprogress', 0);
+					if (data.printError) {
+						$.fn.jAlert({
+							'title': 'Pojawił się błąd',
+							'message': data.printError,
+							'theme': 'error'
+						});
+					}
+				}).fail(function(jqXHR, textStatus, errorThrown) {
+					that.data('inprogress', 0);
+					alert(textStatus);
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeTD = new Date().getTime();
+			}
+		}			
+    });
+	
+	
+	var touchtimeTTD = 0;
+	$('div.map-assets').on("click touchstart", "div.tile_desant", function () {
+		if (touchtimeTTD == 0) {
+        // set first click
+        touchtimeTTD = new Date().getTime();
+		} else {
+        // compare first click to this click and see if they occurred within double click threshold
+			if (((new Date().getTime()) - touchtimeTTD) < 500) {
+            // double click occurred
+				touchtimeTTD = 0;	
+				//alert("double clicked");		
+				var that = $(this);
+				if ((that.data('inprogress') || 0) == 1) { return false;}
+				var unitsID = $(this).attr('num');
+				var gotoCoords = $(this).attr('id').split('_');
+				var x = parseInt(gotoCoords[1]);
+				var y = parseInt(gotoCoords[2]);
+				$('.default-tile').each(function (index) {
+					$(this).remove();
+				});
+				$.ajax({
+					type: "POST",
+					dataType: "json",
+					url: "desant",
+					data: {'moveToX': x, 'moveToY': y, 'unitID': unitsID},
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					}
+				}).done(function( data ) {
+					that.data('inprogress', 0);
+					if (data.printError) {
+						$.fn.jAlert({
+							'title': 'Pojawił się błąd',
+							'message': data.printError,
+							'theme': 'error'
+						});
+					}
+				}).fail(function(jqXHR, textStatus, errorThrown) {
+					that.data('inprogress', 0);
+					alert(textStatus);
+				});
+			} else {
+				// not a double click so set as a new first click
+				touchtimeTTD = new Date().getTime();
+			}
+		}	
+    });
+	
+	
+    $('body').on('click touchstart', '#oplot', function() {
+       //alert("strzelam");
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"ostrzal_przeciwlotniczy"), 'tile_oplot', unitsID, 1 , 0 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+    $('body').on('click touchstart', '#bomby', function() {
+        //alert("strzelam");
+        // Usuwam inne zaznaczenia
+        $('.default-tile').each(function(index) {
+            $( this ).remove();
+        });
+
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        var klasa = unitData.attr('class');
+        var tdID = klasa.split('-')[1];
+        showPoints( x, y, minTD(units[hex.key(x, y)].td,"ostrzal_glebinowe"), 'tile_glebinowe', unitsID, 1 , 0 );
+        // Zamukam otwarte panele
+        closePanels();
+    });
+	
+	$('body').on('click touchstart', '.unitOption', function() {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		$.ajax({
+			type     : "POST",
+			dataType : "json",
+			url      : "editUnitOption",
+			data: {'x':0, 'y':0, 'unitID': $(this).attr('unitid'),'code':0,'zadanie':$(this).attr('zadanie') },
+			beforeSend: function() {
+				that.data('inprogress', 1);
+			}
+		}).done(function( data ) {
+			that.data('inprogress', 0);
+			if (data.printError)
+			{
+                $.fn.jAlert({
+                    'title': 'Pojawił się błąd',
+                    'message': data.printError,
+                    'theme': 'error'
+                });
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+	});
+	
+	
+	$('body').on('click touchstart', '.wezel', function() {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+        var unitCon = $(this).attr('unitid');
+        $('.wezel').each(function(index) {
+            $( this ).remove();
+        });
+		$('.loReload').each(function(index) {
+            $( this ).remove();
+        });
+        $.ajax({
+            type     : "POST",
+            dataType : "json",
+            url      : "connectUnits",
+            data: {'idOne':unitCon, 'idTwo':unitsID },
+			beforeSend: function() {
+				that.data('inprogress', 1);
+			}
+        }).done(function( data ) {
+            that.data('inprogress', 0);
+			if (data.error)
+            {
+                alert(data.error);
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+    });
+	
+	
+	$('body').on('click touchstart', '.loReload', function() {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var unitsID = unitData.attr('num');
+        var unitCon = $(this).attr('unitid');
+        $('.loReload').each(function(index) {
+            $( this ).remove();
+        });
+        $.ajax({
+            type     : "POST",
+            dataType : "json",
+            url      : "loadUnitToLC",
+            data: {'idOne':unitCon, 'idTwo':unitsID },
+			beforeSend: function() {
+				that.data('inprogress', 1);
+			}
+        }).done(function( data ) {
+            that.data('inprogress', 0);
+			if (data.error)
+            {
+                alert(data.error);
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+    });
+	
+	
+	
+    $('body').on('click touchstart', '.napraw', function() {
+        var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		var unitCon = $(this).attr('unitid');
+        $.confirm({
+            title: 'Uwaga!',
+            content: 'Czy chcesz podnieść poziom bazy o 10 pkt. obrony ?',
+            confirmButton: 'Oczywiście',
+            cancelButton: 'Nie,to pomyłka',
+            confirm: function () {
+                $.ajax({
+                    type: "POST",
+                    dataType: "json",
+                    url: "rebuildCity",
+                    data: {'id': unitCon},
+					beforeSend: function() {
+						that.data('inprogress', 1);
+					},
+                }).done(function (data) {
+                    that.data('inprogress', 0);
+					if (data.error) {
+                        alert(data.error);
+                    }
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+					that.data('inprogress', 0);
+					alert(textStatus);
+				});
+            }
+        });
+    });
+
+
+	$('body').on("click touchstart", ".minPanel", function () {
+		var coords = $(this).attr('coord');
+		var x = parseInt(coords.split('_')[0]);
+		var y = parseInt(coords.split('_')[1]);
+		grid.centerOnCoords(x, y);
+		$('.searchUnit').each(function (index) {
+			$(this).remove();
+		});
+		$("#unit_"+x+"_"+y+"").prepend('<div class="searchUnit"></div>');
+		var klasa = $("#unit_"+x+"_"+y+"").attr('class');
+        var klasa = klasa.split(' ')[1];
+        if( klasa == 'cityAxis' || klasa == 'cityAlly' )
+		{
+			$(".searchUnit").css('margin', '-5px 0px 0px -2px');
+		}
+   });
+
+    $('body').on("click touchstart", "#alarma", function () {
+        var coords = $(this).attr('coord');
+        var x = parseInt(coords.split('_')[0]);
+        var y = parseInt(coords.split('_')[1]);
+        grid.centerOnCoords(x, y);
+        $('.searchUnit').each(function (index) {
+            $(this).remove();
+        });
+		if( $("#unit_"+x+"_"+y+"").length == 1 ) {
+			$("#unit_"+x+"_"+y+"").prepend('<div class="searchUnit"></div>');
+			var klasa = $("#unit_"+x+"_"+y+"").attr('class');
+			var klasa = klasa.split(' ')[1];
+			if( klasa == 'cityAxis' || klasa == 'cityAlly' )
+			{
+				$(".searchUnit").css('margin', '-5px 0px 0px -2px');
+			}
+		}else{
+			alert("Jednostka została zniszczona");
+		}
+        $("#sound_money").html(" ");
+        $("#alarma").css("display","none");
+        //free
+    });
+
+    $('div.map-assets').on("click touchstart", "div.tile_active", function() {
+        var clickedUnit = $(this).parent('div');
+        var klasa = $(this).attr('coords').split(',');
+        var x = parseInt(klasa[0]);
+        var y = parseInt(klasa[1]);
+        var custom = parseInt(regions[hex.key(x, y)].fieldCustom);
+		//alert('klik w '+regions[hex.key(x, y)].fieldCustom );
+        if( custom != 0 )
+        {
+            // Zamukam otwarte panele
+            closePanels();
+
+            // Usuwam inne zaznaczenia
+            $('.default-tile').each(function(index) {
+                $( this ).remove();
+            });
+            $('.wezel').each(function(index) {
+                $( this ).remove();
+            });
+			$('.loReload').each(function(index) {
+                $( this ).remove();
+            });
+            $('.field_panel').each(function(index) {
+                $( this ).remove();
+            });
+            switch( custom  )
+            {
+                case 1:
+                    var img='<img src="./app/templates/assets/images/most.png"/>';
+                    var opisImage ='Przęsło mostu';
+                    break;
+                case 12:
+                    var img='<img src="./app/templates/assets/images/smocze_zeby.png"/>';
+                    var opisImage ='Smocze zęby';
+                    break;
+                case 13:
+                    var img='<img src="./app/templates/assets/images/zasieki.png"/>';
+                    var opisImage ='Zasieki';
+                    break;
+                case 14:
+                    var img='<img src="./app/templates/assets/images/mina_ppanc.png"/>';
+                    var opisImage ='Mina przeciwpancerna';
+                    break;
+                case 15:
+                    var img='<img src="./app/templates/assets/images/mina_ppiech.png"/>';
+                    var opisImage ='Mina przeciwpiechotna';
+                    break;
+                case 16:
+                    var img='<img src="./app/templates/assets/images/most.png"/>';
+                    var opisImage ='Przęsło mostu';
+                    break;
+                case 17:
+                    var img='<img src="./app/templates/assets/images/minapowd.png"/>';
+                    var opisImage ='mina pływająca';
+                    break;
+                case 18:
+                    var img='<img src="./app/templates/assets/images/mina_morska_gl.png"/>';
+                    var opisImage ='bomba głębinowa';
+                    break;
+            }
+
+
+
+
+            $("#field_" + x + "_" + y).append('<div class="field_panel"><div id="close_panel"></div> '+img+'<div class="opisImage">'+opisImage+'</div></div>');
+            $('.field_panel').css('background','url(./app/templates/assets/images/units_bg/panel_miasto.png)');
+
+
+        }
+        
+    });
+
+    $('body').on('click touchstart', '.sklad', function() {
+        var unitData = $(this).parents('.units');
+        var unitCoords = unitData.attr('id');
+        var x = parseInt(unitCoords.split('_')[1]);
+        var y = parseInt(unitCoords.split('_')[2]);
+        wynik ='';
+        $.each(units[hex.key(x, y)].td, function(index, value) {
+            wynik += tacticalData[value].nazwa+"<br>";
+        });
+        alert('{{ constant("temp_map19") }} '+ unitData.attr('num') +':<br>'+ wynik );
+    });
+	
+	
+	$('body').on('click touchstart', '.repairDiv', function() {
+		var that = $(this);
+		if ((that.data('inprogress') || 0) == 1) { return false;}
+		$.ajax({
+			type     : "POST",
+			dataType : "json",
+			url      : "repairUnits",
+			data     : {'s':$(this).attr('num')},
+			beforeSend: function() {
+				that.data('inprogress', 1);
+			},
+		}).done(function( data ) {
+			that.data('inprogress', 0);
+			if (data.error)
+			{
+				$.fn.jAlert({
+					'title': '{{ constant("ingame37") }}',
+					'message': data.error,
+					'theme': 'error'
+				});
+			}else{
+				if( data.step == 1 ){
+					showWindow('{{ constant("comp_account75") }}',data.info, '440px', '180px',100 );
+				}
+			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			that.data('inprogress', 0);
+			alert(textStatus);
+		});
+	});
+	
+    $.ajax({
+        url: '{{ constant("ADRES") }}/dane-mapy',
+        type: 'GET',
+        dataType: 'json',
+        beforeSend: function(xhr) {
+			var myArray = [
+			  "aby w wiadomościach wpisywanych w radio podany heks był jako aktywny odsyłacz do konkretnego miejsca na mapie, koordynaty trzeba umieścić w nawiasach kwadratowych [62,-145]?",
+			  "artyleria przeciwlotnicza odpowiada automatycznie ogniem w odległości do 5 heksów ( armaty ciężkie, duże ), do 3 heksów ( armaty mniejsze ) od atakującego samolotu?",
+			  "artyleria przeciwlotnicza odpowiada automatycznie ogniem przeciwlotniczym tylko jeśli jest ROZŁOŻONA do pozycji bojowej?",
+			  "aby otrzymywać powiadomienia dźwiękowe i graficzne w chwili kiedy wróg atakuje twoje jednostki należy mieć aktywne konto SPONSOR ?",
+			  "aby ograbić miasto wroga ostatni, decydujacy cios musisz zadać jednostką lądową z bliskiej odległości ( najlepiej piechotą lub czołgami ), strzał z daleka lub samolotem zniszczy miasto ale nie zostanie ono ograbione...",
+			  "koordynaty heksa wskaznego przez kursor myszy i rodzaj podłoża tego heksa zobaczysz w prawym dolnym rogu okna gry?",
+			  "uszkodzoną dzielnicę stolicy można odbudować tak samo jak twoje miasto? Kliknij na stolicę, jeśli posiadasz kredyty- pokaże się przycisk ODBUDUJ STOLICĘ. Po kliknięciu- odbudujesz o 10 pkt. HP ( dzielnica stolicy ma 100 HP )",
+			  "w bloku RADIO mamy 3 kanały: RADIO OGÓLNE- tam rozmawiają ze sobą gracze obu stron, RADIO SOJUSZNICZE- na którym rozmawiają gracze tylko jednej nacji, RADIO PRYWATNE: tam porozmawiasz z graczami którzy DODALI ciebie do przyjaciół",
+			  "w bloku RADIO PRYWATNE porozmawiasz z graczami, którzy dodali CIEBIE jako przyjaciel, niezależnie od nacji!",
+			  "w bloku RADIO SOJUSZNICZE porozmawiasz TYLKO z graczami Twojej nacji",
+			  "w bloku RADIO OGÓLNE porozmawiasz z wrogiem ale i ze swoimi, nie pisz na tym kanale strategicznych, tajnych informacji! :)",
+			  "jeśli masz jakiekolwiek problemy w grze / pytania / propozycje - napisz do gracza miccom ( support gry ) lub dodaj swoje pytanie na naszym forum- tam na pewno ktoś ci pomoże!",
+			  "każda jednostka bojowa ma swój ZASIĘG WIDZENIA ( sprawdzisz go w fabrykach klikając na poszczególne jednostki ), jeśli widzi twój sojusznik- widzisz i Ty, jeśli Ty widzisz- widzi każdy twój sojusznik, ale nie widać wszystkiego :) Mapę trzeba odkrywać :).",
+			  "aby uruchomić kolejkę budowania, należy w FABRYKACH \"złapać\" kursorem myszki jednostkę ( metodą Drag & Drop / Przeciągnij i Ppuść ) z listy jednostek i przesunąć ją na pole - listę produkcji. Po uzupełnieniu wszystkich kratek ( 5 szt. ) należy przycisnąć przycisk ZAPISZ KOLEJEKĘ PRODUKCJI- i gotowe!",
+			  "gracz Wilczek ma najwięcej zdobytych odznaczeń ( aktualnie 5 :) ). Wilczkowi gratulujemy a Was zachęcamy do realizacji zadań i zdobywania medali. Nie wiesz jak? -> Kliknij na swój login ( lewy górny róg ekranu gry ) -> w panelu gracza znajdziesz odznaczenia -> najedź dowolny z nich kursorem myszki i przeczytaj, co trzeba zrobić aby zdobyć medal :) "
+			
+			];
+			$('.close').css('display', 'none');
+            showWindow('{{ constant("hate_map_no_active") }}', '<div id="infoTxt">{{ constant("temp_map20")|raw }}'+myArray[Math.floor(Math.random()*myArray.length)]+'</div>', '400px', '300px',101);
+        },
+        success: function(data) {
+            $.each(data.map, function(index, value) {
+                addRegion(value.x, value.y, value.fieldType, value.fieldCustom, value.fieldTxt);
+                if (!data.hasCity && !data.endW )
+                {
+                    var inv = grid.screenpos(value.x, value.y);
+                    if (playerObj.nation == 1 && value.x >= 97 && value.fieldType != 1 && value.fieldType != 8 && value.fieldType != 9)
+                    {
+                        $(document.createElement("div")).attr({
+                            id: 'start_' + value.x + '_' + value.y,
+                            style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+                            class: 'settle_city'}).appendTo('div.map-assets');
+                    }
+                    else if (playerObj.nation == 2 && value.x <= 35 && value.fieldType != 1 && value.fieldType != 8 && value.fieldType != 9)
+                    {
+                        $(document.createElement("div")).attr({
+                            id: 'start_' + value.x + '_' + value.y,
+                            style: 'left: ' + inv.x + 'px; top: ' + inv.y + 'px;',
+                            class: 'settle_city'}).appendTo('div.map-assets');
+                    }
+                }
+                if( ( value.fieldCustom != 0 && value.fieldCustom != 14 && value.fieldCustom != 15 && value.fieldCustom != 17 && value.fieldCustom != 18 ) || ( ( value.fieldCustom == 14 || value.fieldCustom == 15 || value.fieldCustom == 17 || value.fieldCustom == 18) && playerObj.id == value.fieldPlayerID ) )
+                {
+                    addCustomField(value.x, value.y, value.fieldCustom);
+                }
+            });
+            $.each(data.units, function(index, value) {
+                addUnit(value);
+            });
+
+			tacticalData = data.tacticalData;
+            mapFieldData = data.mapFieldData;
+            startRegionEvents();
+            // open socket
+            socketConnect(data.mapIdent);
+        },
+        error: function() {
+            hideWindow();
+            $.fn.jAlert({
+                'title': 'Pojawił się błąd',
+                'message': '{{ constant("temp_map21") }}',
+                'theme': 'error'
+            });
+        }
+    }).done(function(data) {
+        if( data.endW ){
+			showWindow(data.mapTitle, data.endW , 350, 500,101);
+			$('.close').css('display', 'block');
+		}else{
+			
+			$('#infoTxt').append('<div id="closeTxt">'+data.mapLoads+'</div>');
+			$('.close').css('display', 'block');
+			
+			//showWindow(data.mapTitle, data.mapLoads, 200, 118,101);
+			//hideWindow();
+			
+			if (data.hasCity === false)
+			{
+				showWindow(data.hasCityTitle, data.hasCityDescription, '600px', data.hightWindow,101);
+				$('.close').css('display', 'block');
+			}
+			
+		}
+		
+
+        
+		
+		if (data.iluPolecajacych > 0)
+        {
+            setTimeout(function()
+            {
+                showWindow(data.polecajacyTitle, data.polecajacyTXT, '600px', data.heightPolecajacy,101);
+                return;
+            }, 3500);
+        }
+		
+		if (data.opisTutekSztaby != '')
+        {
+            setTimeout(function()
+            {
+				showWindow(data.tytulTutekSztaby, data.opisTutekSztaby, '600px', data.hightTutekSztaby,101);
+                return;
+            }, 4000);
+        }
+		if (data.goldNagroda > 0)
+        {
+            setTimeout(function()
+            {
+				if( data.goldNagroda > 0 ){
+					// pokazujemy okienko z nagrodą
+					$('#upGold').css('display', 'block');
+					$('#upGold').html(data.goldNagrodaTXT);
+				
+				}
+                return;
+            }, 4000);
+        }
+		
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+		that.data('inprogress', 0);
+		alert(textStatus);
+	});
+	/*
+	// ładujemy baner
+		$.ajax({
+			type     : "GET",
+			dataType : "json",
+			url      : "getBaner/1",
+		}).done(function( data ) {
+			if (data.error)
+			{
+				alert(data.error);
+			}
+			else
+			{
+				if(data.active == 0 ){
+					$("#senseDol").html(data.baner);
+					$("#senseDol").css('display','block');
+				}
+				
+			}
+		});
+		*/
+    io.on('newCity', function(data) {
+        closePanels();
+		if (data.enemyUnitsData)
+        {
+            $.each(data.enemyUnitsData, function(index, value) {
+                if (value.removeUnit == true)
+                {
+                    removeUnit(value);
+                }
+            });
+        }
+		if(data.unitDataInz.remove == true){
+			removeUnit(data.unitDataInz);
+		}
+		
+		if(data.RemoveOldCity.remove == true){
+			removeUnit(data.RemoveOldCity);
+		}
+		addUnit(data.unitData);
+		
+        if( data.unitData.owner == playerObj.id && data.unitData.tutorialInfo!='' )
+		{
+			showWindow('', data.unitData.tutorialInfo, 600, 600, 101);
+		}else if( data.unitData.owner == playerObj.id && data.unitData.info!='' ){
+			showWindow('', data.unitData.info, 300, 118, 101);
+		}
+		$('.settle_city').each(function(index) {
+			$( this ).remove();
+		});
+		
+    });
+	
+    io.on('unitMove', function (data) {
+        if (data.enemyUnitsData)
+        {
+            $.each(data.enemyUnitsData, function(index, value) {
+                removeUnit(value);
+                if (value.addUnit == true)
+                {
+                    addUnit(value);
+                }
+            });
+        }
+        if (data.moveUnitData)
+        {
+			if (playerObj.id == data.moveUnitData.owner)
+            {
+                $('.default-tile').each(function(index) {
+                    $( this ).remove();
+                });
+            }
+			
+			removeUnit(data.moveUnitData);// usuwamy jednostki,  a nastepnie je dodajemy
+			if (data.moveUnitData.addUnit == true)
+			{
+				addUnit(data.moveUnitData);
+			}
+			/*	
+			if (playerObj.id == data.moveUnitData.owner && data.moveUnitData.UnderWater == 1 && data.moveUnitData.Specialty == 18 )//moje, zanurzone okręty podwodne
+			{
+				addUnit(data.moveUnitData);
+			}
+			else if ( data.moveUnitData.UnderWater == 1 && data.moveUnitData.Specialty != 18 )//wszystkie wynurzone okręty podwodne
+			{
+				addUnit(data.moveUnitData);
+			}
+			/*
+			else if ( data.moveUnitData.owner == playerObj.id ){
+				//console.log(JSON.stringify(data.moveUnitData, null, '    '));
+				addUnit(data.moveUnitData);
+			}*/
+			else if (data.moveUnitData.sojusznikWidzi === true )//wszystkie pozostałe jednostki
+			{
+				addUnit(data.moveUnitData);
+			}else if (data.moveUnitData.wrogWidzi === true )//wszystkie pozostałe jednostki 
+			{
+				addUnit(data.moveUnitData);
+			}
+			
+			if( data.moveUnitData.mina && data.moveUnitData.mina != 0 )
+			{
+				$('div.map-assets').find("#field_" + data.moveUnitData.x + "_" + data.moveUnitData.y).remove();
+				if( playerObj.id == data.moveUnitData.owner )
+				{
+					alert( data.moveUnitData.mina );
+				}
+			}
+			/* alert odnosnie nagrody za pole Premium */
+			if( data.moveUnitData.premium && data.moveUnitData.premium != 0 )
+			{
+				if( playerObj.id == data.moveUnitData.owner )
+				{
+					alert( data.moveUnitData.premium );
+				}
+			}
+			
+			
+			
+			
+			
+			$("#"+data.moveUnitData.id).find(".ilosc_tur").html(data.moveUnitData.unitTurn);
+		}
+		if( data.samouczek.aktiv == 1 && data.samouczek.playerID == playerObj.id )
+		{
+			showActiveWindow('temat',data.samouczek.tresc, 540, data.samouczek.heightWindow,101);
+			if( data.samouczek.goldNagroda > 0 ){
+				$('#upGold').css('display', 'block');
+				$('#upGold').html(data.samouczek.goldNagrodaTXT);
+			}
+			
+        }
+    });
+	
+    io.on('unitUpdate', function (data) {
+        if (data.updateUnitData)
+        {
+            if ( data.updateUnitData.removeUnit === true )
+            {
+                removeUnit(data.updateUnitData);
+            }else{
+				removeUnit(data.updateUnitData);
+				addUnit(data.updateUnitData);
+			}
+			
+			if (playerObj.id == data.updateUnitData.owner && data.updateUnitData.Specialty == 18 ) //moje, zanurzone okręty podwodne
+			{
+				addUnit(data.updateUnitData);
+			}
+                /*}
+				
+                else
+                {
+                    removeUnit(data.updateUnitData);
+                    if (playerObj.id == data.updateUnitData.owner && data.updateUnitData.UnderWater == 1 && data.updateUnitData.Specialty == 18 ) //moje, zanurzone okręty podwodne
+                    {
+                        addUnit(data.updateUnitData);
+                    }
+					else if ( data.updateUnitData.UnderWater == 1 && data.updateUnitData.Specialty != 18 )//wszystkie wynurzone okręty podwodne
+					{
+						addUnit(data.updateUnitData);
+					}
+                    else if (data.updateUnitData.UnderWater != 1 && data.updateUnitData.Specialty != 18)//wszystkie wynurzone okręty podwodne
+                    {
+                        addUnit(data.updateUnitData);
+                    }
+					*/
+        }
+		if (data.updateFieldData)
+        {
+			if(data.updateFieldData.error && data.updateFieldData.owner == playerObj.id )
+			{
+				alert(data.updateFieldData.error);
+			}
+			else
+			{
+				if (data.updateFieldData.field === true)//dodajemy pzeszkode
+				{
+					if( data.updateFieldData.fieldCustom != 0 )
+					{
+						if( data.updateFieldData.owner == playerObj.id ||  data.updateFieldData.fieldCustom < 14 )//jeśli przeszkoda jest przeznaczona dla wszystkich
+                        {
+                            addCustomField(data.updateFieldData.x, data.updateFieldData.y, data.updateFieldData.fieldCustom);
+                        }
+                        addRegion(data.updateFieldData.x, data.updateFieldData.y, data.updateFieldData.fieldType, data.updateFieldData.fieldCustom, data.updateFieldData.fieldTxt);
+                        if( data.updateFieldData.owner == playerObj.id )
+						{
+							playerObj.RemoveSoftCurrency(data.updateFieldData.softCurrency);
+						}
+					}
+				}
+				else//usuwamy przeszkodę
+				{
+					$('div.map-assets').find("#field_" + data.updateFieldData.x + "_" + data.updateFieldData.y).remove();
+					addRegion(data.updateFieldData.x, data.updateFieldData.y, data.updateFieldData.fieldType, 0, data.updateFieldData.fieldTxt);
+
+                    if( data.updateFieldData.owner == playerObj.id )
+					{
+						playerObj.AddSoftCurrency(data.updateFieldData.softCurrency);
+						alert(data.updateFieldData.info);
+					}
+				}
+			}
+			$('.tile_Saper').each(function(index) {
+				$( this ).remove();
+			});
+        }
+		if( data.updateUnitData.sound && playerObj.id == data.updateUnitData.owner )//uruchamiamy sound
+		{
+            $("#sound_money").html("<audio autoplay><source src=\"app/templates/assets/sounds/"+data.updateUnitData.sound+".ogg\" type=\"audio/ogg\"/><source src=\"app/templates/assets/sounds/"+data.updateUnitData.sound+".mp3\"/></audio>");
+        }
+		
+		
+		
+
+    });
+	io.on('afterFight', function (data) {
+        // Usuwamy jednostki których już nie widać
+		if (data.enemyUnitsData)
+        {
+            $.each(data.enemyUnitsData, function(index, value) {
+                
+				if (value.removeUnit == true)
+                {
+                    removeUnit(value);
+                }
+            });
+        }
+        if (data.updateUnitData)
+        {
+			if(typeof data.updateUnitData.myUnit != 'undefined'){
+				if(data.updateUnitData.myUnit.removeUnit == true){
+					removeUnit(data.updateUnitData.myUnit);
+						var liczba = parseInt($('#rapAll').html());
+						$('#rapAll').html(liczba+1);
+						$('#rapAll').css('display','block');
+				}else{
+					removeUnit(data.updateUnitData.myUnit);
+					addUnit(data.updateUnitData.myUnit);
+				}
+			}
+			if (typeof data.updateUnitData.enemyUnit != 'undefined')
+            {
+				//console.log(JSON.stringify(data.updateUnitData.enemyUnit, null, '    '));
+				if(data.updateUnitData.enemyUnit.removeUnit == true){
+					if( data.updateUnitData.enemyUnit.owner == playerObj.id ){
+						var liczba = parseInt($('#rapAll').html());
+						$('#rapAll').html(liczba+1);
+						$('#rapAll').css('display','block');
+					}
+					removeUnit(data.updateUnitData.enemyUnit);
+				}else{
+					removeUnit(data.updateUnitData.enemyUnit);
+					if (data.updateUnitData.enemyUnit.addUnit == true)
+					{
+						addUnit(data.updateUnitData.enemyUnit);
+					}
+					else
+					{
+						if (data.updateUnitData.enemyUnit.UnderWater != 1 && data.updateUnitData.enemyUnit.Specialty != 18)
+						{
+							addUnit(data.updateUnitData.enemyUnit);
+						}
+					}
+				}
+            }
+			
+			
+			
+            /*
+			else if (typeof data.updateUnitData.enemyUnit != 'undefined')
+            {
+                removeUnit(data.updateUnitData.enemyUnit);
+                //$('div.map-assets').find("#unit_" + data.updateUnitData.enemyUnit.x + "_" + data.updateUnitData.enemyUnit.y).remove();
+                //delete units[hex.key(data.updateUnitData.enemyUnit.x, data.updateUnitData.enemyUnit.y)];
+
+                
+            }
+            
+           
+				//usuwamy jednostkę atakującą
+				
+				//$('div.map-assets').find("#unit_" + data.updateUnitData.myUnit.x + "_" + data.updateUnitData.myUnit.y).remove();
+                //delete units[hex.key(data.updateUnitData.myUnit.x, data.updateUnitData.myUnit.y)];
+
+					/*
+                    if (playerObj.id == data.updateUnitData.myUnit.owner && data.updateUnitData.myUnit.UnderWater == 1 && data.updateUnitData.myUnit.Specialty == 18)//moje, zanurzone okręty podwodne
+                    {
+                        addUnit(data.updateUnitData.myUnit);
+                        units[hex.key(data.updateUnitData.myUnit.x, data.updateUnitData.myUnit.y)].td =  data.updateUnitData.myUnit.td;
+                    }
+					else if (data.updateUnitData.myUnit.UnderWater == 1 && data.updateUnitData.myUnit.Specialty != 18)//wszystkie wynurzone okręty podwodne
+                    {
+                        addUnit(data.updateUnitData.myUnit);
+                    }
+                    else if (data.updateUnitData.myUnit.UnderWater != 1 && data.updateUnitData.myUnit.Specialty != 18)//wszystkie wynurzone okręty podwodne
+                    {
+                        addUnit(data.updateUnitData.myUnit);
+                    }
+					*/
+			$("#"+data.updateUnitData.myUnit.id).find(".ilosc_tur").html(data.updateUnitData.myUnit.unitTurn);		
+        }
+		
+		if( data.alarmaData.zarowa == 1 && playerObj.id == data.alarmaData.playerID )
+		{
+			$("#sound_money").html("<audio autoplay loop><source src=\"app/templates/assets/sounds/beep.ogg\" type=\"audio/ogg\"/><source src=\"app/templates/assets/sounds/beep.mp3\"/></audio>");
+			$("#alarma").css('display', 'block');
+			$("#alarma").attr({coord: data.alarmaData.x + '_' + data.alarmaData.y});
+		}
+    });
+	io.on('showConnectUnits', function (data) {
+        if (data.showConnectUnits && playerObj.id == data.owner )
+        {
+            $.each(data.showConnectUnits, function (index, value ) {
+                $('div.map-assets').find("#unit_" + value.x + "_" + value.y).append('<div class="wezel" unitid="'+data.connUnit+'"> </div>');
+            });
+        }
+    });
+	
+	io.on('showLandingCraft', function (data) {
+        if (data.showLandingCraft && playerObj.id == data.owner )
+        {
+            $.each(data.showLandingCraft, function (index, value ) {
+                $('div.map-assets').find("#unit_" + value.x + "_" + value.y).append('<div class="loReload" unitid="'+data.connUnit+'"> </div>');
+            });
+        }
+    });
+	
+	
+    io.on('conectedUnits', function (data) {
+        removeUnit(data.unitTwo);
+        //$('div.map-assets').find("#unit_" + data.unitTwo.x + "_" + data.unitTwo.y).remove();
+        //delete units[hex.key(data.unitTwo.x, data.unitTwo.y)];
+        addUnit(data.unitOne);
+        units[hex.key(data.unitOne.x, data.unitOne.y)].nazwa =  data.unitOne.nazwa;
+        units[hex.key(data.unitOne.x, data.unitOne.y)].td =  data.unitOne.td;
+        units[hex.key(data.unitOne.x, data.unitOne.y)].experience =  data.unitOne.experience;
+        units[hex.key(data.unitOne.x, data.unitOne.y)].Morale =  data.unitOne.Morale;
+        units[hex.key(data.unitOne.x, data.unitOne.y)].unitTurn =  data.unitOne.unitTurn;
+        units[hex.key(data.unitOne.x, data.unitOne.y)].Specialty =  data.unitOne.Specialty;
+        if( data.samouczek.aktiv == 1 && data.samouczek.playerID == playerObj.id )
+        {
+            showActiveWindow( 'tytul', data.samouczek.tresc, '650px','auto',101);
+            if( data.samouczek.goldNagroda > 0 ){
+				// pokazujemy okienko z nagrodą
+				$('#upGold').css('display', 'block');
+				$('#upGold').html(data.samouczek.goldNagrodaTXT);
+			}
+        }
+        else
+        {
+            if(data.unitOne.owner == playerObj.id )
+            {
+                alert("{{ constant('polaczenie1') }}");
+            }
+        }
+
+    });
+	
+	io.on('loadLC', function (data) {
+        removeUnit(data.unitTwo);    
+		if(data.unitOne.owner == playerObj.id )
+		{
+			alert("{{ constant('temp_map22') }}");
+		}
+    });
+	
+	
+	
+	
+    io.on('showUnderedUnits', function (data) {
+        if (data.owner == playerObj.id  )
+        {
+            if( data.unterEnemy == 0 )
+            {
+                alert("{{ constant('temp_map23') }}");
+				
+				
+            }
+            else
+            {
+                $.each(data.showUnderedUnits, function (index, value) {
+                    addUnit(value);
+                });
+            }
+            units[hex.key(data.x, data.y)].unitTurn =  data.unitTurn;
+			var ts = Math.round(new Date().getTime() / 1000| 0);
+			if( data.up1 == 1 ){
+				var newTime = data.timing1 - ts;
+				$('#'+units[hex.key(data.x, data.y)].id+'_1').addClass('upCl');
+				loadTimer( newTime, ''+units[hex.key(data.x, data.y)].id+'_1', units[hex.key(data.x, data.y)].id+1+playerObj.id, 1 );
+			}
+			if(data.up2 == 1 ){
+				var newTime = data.timing2 - ts;
+				$('#'+units[hex.key(data.x, data.y)].id+'_2').addClass('upCl');
+				loadTimer( newTime, ''+units[hex.key(data.x, data.y)].id+'_2', units[hex.key(data.x, data.y)].id+2+playerObj.id, 1 );
+			}
+			
+			if( data.sound )//uruchamiamy sound g3
+			{
+				$("#sound_money").html("<audio autoplay><source src=\"app/templates/assets/sounds/"+data.sound+".ogg\" type=\"audio/ogg\"/><source src=\"app/templates/assets/sounds/"+data.sound+".mp3\"/></audio>");
+			}
+        }
+    });
+	
+	io.on('rebuildCity', function(data) {
+        removeUnit(data.unitData);
+        //$('div.map-assets').find("#unit_" + data.unitData.x + "_" + data.unitData.y).remove();
+        //delete units[hex.key(data.unitData.x, data.unitData.y)];
+        addUnit(data.unitData);
+        if( data.userData.playerID == playerObj.id )
+        {
+            playerObj.RemoveSoftCurrency(data.userData.softCurrency);
+            showWindow('', 'Odbudowa wykonana', 200, 118,101);
+            //hideWindow();
+        }
+    });
+	io.on('addTopic', function(data) {
+		if( data.playerID == playerObj.id )
+        {
+			hideWindow(true);
+			hideActiveWindow(true);
+		}else{
+			$('#koperta').css('display','block');
+		}
+    });
+	
+	io.on('addKom', function(data) {
+		if( data.playerID == playerObj.id )
+        {
+			hideWindow(true);
+			hideActiveWindow(true);
+		}else{
+			$('#koperta').css('display','block');
+		}
+    });
+	
+	
+	io.on('addContMessageTopic', function(data) {
+		if( data.odbiorcaID == playerObj.id )
+        {
+			$('#messAll').html(data.messAll);
+			$('#messAll').css('display','block');
+		}
+    });
+	
+	io.on('shotOnBridge', function (data) {
+        // Usuwamy jednostki których już nie widać
+		if (data.removeBridge == true )
+		{
+			$("#field_"+data.x+"_"+data.y+"").remove();
+			addRegion(data.x, data.y, data.fieldType, '', data.fieldTxt);
+		}
+		var ts = Math.round(new Date().getTime() / 1000| 0);
+		if( data.up1 == 1 ){
+			var newTime = data.timing1 - ts;
+			units[hex.key(data.unitsID.x, data.unitsID.y)].timing1 =  data.unitsID.timing1;
+			loadTimer( newTime, +units[hex.key(data.unitsID.x, data.unitsID.y)].id+'_1', units[hex.key(data.unitsID.x, data.unitsID.y)].id+1+playerObj.id, 1 );
+		}
+		if( data.up2 == 1 ){
+			var newTime = data.timing2 - ts;
+			units[hex.key(data.unitsID.x, data.unitsID.y)].timing2 =  data.unitsID.timing2;
+			loadTimer( newTime, +units[hex.key(data.unitsID.x, data.unitsID.y)].id+'_2', units[hex.key(data.unitsID.x, data.unitsID.y)].id+2+playerObj.id, 1 );
+		}
+		if( data.unitTurn == true ){
+			units[hex.key(data.unitsID.x, data.unitsID.y)].unitTurn =  data.unitTurn;
+		}
+		$('#unit_' + data.unitsID.x + '_' + data.unitsID.y).children('.active_point').html(data.defensePoints);
+		units[hex.key(data.unitsID.x, data.unitsID.y)].DefensePoints =  data.defensePoints;
+		
+		if( data.removeUnit == true ){
+			removeUnit(data.unitsID);
+		}
+    });
+	
+	io.on('repairUnit', function (data) {
+        //naprawiamy jednostki
+		$.each(data.unitList, function (index, value ) {
+			$('div.map-assets').find("#unit_" + value.x + "_" + value.y).children('.active_point').html('10');
+			units[hex.key(value.x, value.y)].DefensePoints =  100;
+		});
+		
+		if( data.back.playerID == playerObj.id ){
+			playerObj.RemoveGold(data.back.gold);
+			$('.repairDiv').css('display', 'none');
+			showWindow('{{ constant("comp_account75") }}',data.back.info, '440px', '180px',100 );
+		}
+    });
+	
+	io.on('buildSilo', function(data) {
+        removeUnit(data.unitData);
+        addUnit(data.unitData);
+        if( data.unitData.owner == playerObj.id )
+        {
+            showWindow('', data.unitData.info, 200, 118,101);
+            //hideWindow();
+        }
+    });
+
+})(window.hex);
+});
+</script>
+{% endblock %}
